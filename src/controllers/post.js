@@ -13,16 +13,17 @@ const filter = async (filters, userId) => {
     sort,
     isFeatured,
     isFromSchool,
+    isDeleted,
   } = filters;
   const skip = (+page - 1) * limit;
   const orderBy = { createdAt: sort === "asc" ? "asc" : "desc" };
 
-  let where = {};
+  let where = { isDeleted: false };
 
-  if (title) where.title = { contains: title };
+  if (isDeleted !== undefined) where.isDeleted = Boolean(+isDeleted);
+  if (title) where.title = { contains: title, mode: "insensitive" };
   if (isFeatured !== undefined) where.isFeatured = Boolean(+isFeatured);
   if (isFromSchool !== undefined) where.isFromSchool = Boolean(+isFromSchool);
-
   if (status) where.status = status;
 
   if (userId) {
@@ -85,7 +86,11 @@ export const getReleatedPosts = catchAsync(async (req, res, next) => {
   const { postId } = req.query;
   const posts = await prisma.post.findMany({
     where: {
-      NOT: { id: postId },
+      AND: [
+        { NOT: { id: postId } },
+        { deleted: false },
+        { status: PostStatus.verified },
+      ],
     },
     include: {
       author: true,
@@ -93,8 +98,10 @@ export const getReleatedPosts = catchAsync(async (req, res, next) => {
     },
   });
 
-  if (posts.length === 0)
+  if (posts.length === 0) {
     return next(new AppError("Không tìm thấy bài viết liên quan", 404));
+  }
+
   res.status(200).json({ posts });
 });
 
@@ -114,19 +121,33 @@ export const deletePost = catchAsync(async (req, res, next) => {
   const { userId, role } = req.user;
   const id = req.params.id;
 
-  const where = role === "admin" ? { id } : { id, user_id: userId };
+  const where = role === Role.STUDENT ? { id, authorId: userId } : { id };
 
-  const post = await prisma.post.findUnique({ where });
-  if (!post)
+  const post = await prisma.post.findFirst({ where });
+  if (!post) {
     return next(
       new AppError(
-        "Không tìm thây bài viết hoặc bạn không thể xoá bài viết này",
+        "Không tìm thấy bài viết hoặc bạn không thể xoá bài viết này",
         404
       )
     );
+  }
 
-  await prisma.post.delete({ where: { id } });
-  res.status(200).json({ message: "Xoá bài viết thành công" });
+  if (role === Role.STUDENT) {
+    await prisma.post.delete({ where: { id } });
+    return res
+      .status(200)
+      .json({ message: "Xoá bài viết thành công (hard delete)" });
+  } else {
+    await prisma.post.update({
+      where: { id },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+      },
+    });
+    return res.status(200).json({ message: "Đã xoá bài viết (soft delete)" });
+  }
 });
 
 export const updatePost = catchAsync(async (req, res, next) => {
@@ -178,7 +199,7 @@ export const publishPost = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
   const post = await prisma.post.findFirst({
-    where: { id: id, status: "draft" },
+    where: { id, status: { in: [PostStatus.draft, PostStatus.pending] } },
   });
 
   if (!post)
@@ -186,7 +207,10 @@ export const publishPost = catchAsync(async (req, res, next) => {
       message: "Không tìm thấy bài viết hoặc bài viết đã được xuất bản",
     });
 
-  await prisma.post.update({ where: { id: id }, data: { status: "pending" } });
+  await prisma.post.update({
+    where: { id: id },
+    data: { status: PostStatus.verified },
+  });
   res.status(200).json({ message: "Xuất bản bài viết thành công" });
 });
 

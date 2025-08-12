@@ -4,6 +4,9 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import AppRouter from "./routes/index.js";
 import handleError from "./controllers/err.js";
+import "./jobs/major.js";
+import "./jobs/user.js";
+import "./jobs/post.js";
 
 dotenv.config();
 const app = express();
