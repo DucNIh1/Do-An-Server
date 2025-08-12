@@ -73,7 +73,7 @@ export const signup = catchAsync(async (req, res, next) => {
   await sendVerificationEmail(email, verificationToken);
 
   res.status(201).json({
-    message: "Signup successful, Please check your email to verify account!",
+    message: "Đăng kí tài khoản thành công, vui lòng kiểm tra email của bạn",
     id: userId,
   });
 });
@@ -152,29 +152,29 @@ export const loginWithGoogle = catchAsync(async (req, res, next) => {
   });
 
   const payload = ticket.getPayload();
-
-  let user = await prisma.user.findUnique({
-    where: { googleId: payload.sub },
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      OR: [{ googleId: payload.sub }, { email: payload.email }],
+    },
   });
+  if (existingUser)
+    return next(new AppError("Tài khoản này đã được đăng kí", 400));
 
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        name: payload.name,
-        email: payload.email,
-        avatar: payload.picture,
-        google_id: payload.sub,
-        isVerified: true,
-      },
-    });
-  }
+  let user = await prisma.user.create({
+    data: {
+      name: payload.name,
+      email: payload.email,
+      avatar: payload.picture,
+      googleId: payload.sub,
+      isVerified: true,
+    },
+  });
 
   const accessToken = generateAccessToken(user, res);
 
   res.status(200).json({
     message: "Đăng nhập thành công",
     accessToken,
-    refreshToken,
     user: {
       id: user.id,
       name: user.name,

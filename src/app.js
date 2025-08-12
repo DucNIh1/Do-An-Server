@@ -12,13 +12,13 @@ app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3800;
+
+app.get("/", (req, res) => {
+  res.send("Hello world");
+});
 
 AppRouter(app);
-
-// app.use("*", (req, res, next) => {
-//   res.status(404).json({ message: "Đường dẫn không hợp lệ!" });
-// });
 
 app.use(handleError);
 

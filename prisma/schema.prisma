@@ -34,30 +34,39 @@ model Major {
   posts Post[]
 }
 
+
 model Post {
   id           String    @id @default(uuid()) @db.Uuid
   title        String
   content      String
+  teaser       String?    
   isFromSchool Boolean   @default(false)
+  isFeatured   Boolean   @default(false)
   authorId     String    @db.Uuid
   majorId      String?   @db.Uuid
+  status       PostStatus  @default(pending)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   comments     Comment[]
   likes        Like[]
   author       User      @relation(fields: [authorId], references: [id])
   major        Major?    @relation(fields: [majorId], references: [id])
+
+  images       Image[]
 }
+
 
 model Comment {
   id            String         @id @default(uuid()) @db.Uuid
-  content       String
+  text          String?
   postId        String         @db.Uuid
   authorId      String         @db.Uuid
   createdAt     DateTime       @default(now())
   author        User           @relation(fields: [authorId], references: [id])
   post          Post           @relation(fields: [postId], references: [id])
   notifications Notification[]
+
+  Images Image[]
 }
 
 model Like {
@@ -71,14 +80,30 @@ model Like {
 
 model Message {
   id            String         @id @default(uuid()) @db.Uuid
-  content       String
+  text          String?
   senderId      String         @db.Uuid
   receiverId    String         @db.Uuid
   createdAt     DateTime       @default(now())
   receiver      User           @relation("MessageReceiver", fields: [receiverId], references: [id])
   sender        User           @relation("MessageSender", fields: [senderId], references: [id])
   notifications Notification[]
+
+  images Image[]
 }
+
+model Image {
+  id          String    @id @default(uuid()) @db.Uuid
+  url         String
+  publicId    String
+  postId      String?   @db.Uuid
+  commentId   String?   @db.Uuid
+  messageId   String?   @db.Uuid
+  createdAt   DateTime  @default(now())
+  post        Post?     @relation(fields: [postId], references: [id])
+  comment     Comment?  @relation(fields: [commentId], references: [id])
+  message     Message?  @relation(fields: [messageId], references: [id])
+}
+
 
 model Notification {
   id         String           @id @default(uuid()) @db.Uuid
@@ -121,4 +146,10 @@ enum NotificationType {
   COMMENT
   LIKE
   MESSAGE
+}
+
+enum PostStatus {
+  draft
+  pending
+  verified
 }
