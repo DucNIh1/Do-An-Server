@@ -14,6 +14,7 @@ const filter = async (filters, userId) => {
     isFeatured,
     isFromSchool,
     isDeleted,
+    majorId,
   } = filters;
   const skip = (+page - 1) * limit;
   const orderBy = { createdAt: sort === "asc" ? "asc" : "desc" };
@@ -25,6 +26,7 @@ const filter = async (filters, userId) => {
   if (isFeatured !== undefined) where.isFeatured = Boolean(+isFeatured);
   if (isFromSchool !== undefined) where.isFromSchool = Boolean(+isFromSchool);
   if (status) where.status = status;
+  if (majorId) where.majorId = majorId;
 
   if (userId) {
     where.authorId = userId;
@@ -45,6 +47,9 @@ const filter = async (filters, userId) => {
             name: true,
             avatar: true,
           },
+        },
+        major: {
+          select: { id: true, name: true, code: true },
         },
       },
     }),
@@ -133,30 +138,19 @@ export const deletePost = catchAsync(async (req, res, next) => {
     );
   }
 
-  if (role === Role.STUDENT) {
-    await prisma.post.delete({ where: { id } });
-    return res
-      .status(200)
-      .json({ message: "Xoá bài viết thành công (hard delete)" });
-  } else {
-    await prisma.post.update({
-      where: { id },
-      data: {
-        isDeleted: true,
-        deletedAt: new Date(),
-      },
-    });
-    return res.status(200).json({ message: "Đã xoá bài viết (soft delete)" });
-  }
+  await prisma.post.delete({ where: { id } });
+  return res
+    .status(200)
+    .json({ message: "Xoá bài viết thành công (hard delete)" });
 });
 
 export const updatePost = catchAsync(async (req, res, next) => {
-  const { authorId } = req.user;
+  const { userId } = req.user;
   const { id } = req.params;
   const { title, content, image, teaser } = req.body;
 
   const post = await prisma.post.findFirst({
-    where: { id: id, authorId: authorId },
+    where: { id: id, authorId: userId },
   });
   if (!post) return next(new AppError("Không tìm thấy bài viết", 404));
 
@@ -170,9 +164,12 @@ export const updatePost = catchAsync(async (req, res, next) => {
 
 export const createPost = catchAsync(async (req, res, next) => {
   const { userId, role } = req.user;
-  const { title, content, teaser, isFromSchool, status } = req.body;
+  const { title, content, teaser, isFromSchool, majorId } = req.body;
+  let status = req.body.status;
 
-  if (role === Role.STUDENT) status = PostStatus.pending;
+  if (role === Role.STUDENT) {
+    status = PostStatus.pending;
+  }
 
   if (!title || !content)
     return next(new AppError("Vui lòng điền đầy đủ thông tin yêu cầu", 400));
@@ -188,11 +185,14 @@ export const createPost = catchAsync(async (req, res, next) => {
     teaser,
     status,
     isFromSchool,
+    majorId,
     authorId: userId,
   });
-  await prisma.post.create({ data });
+  const newPost = await prisma.post.create({ data });
 
-  res.status(201).json({ message: "Tạo mới bài viết thành công" });
+  res
+    .status(201)
+    .json({ message: "Tạo mới bài viết thành công", data: newPost });
 });
 
 export const publishPost = catchAsync(async (req, res, next) => {

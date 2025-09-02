@@ -6,7 +6,7 @@ import majorRouter from "./major.js";
 const AppRouter = (app) => {
   app.use("/api/auth", authRouter);
   app.use("/api/posts", postsRouter);
-  app.use("/api/upload", uploadRouter);
+  app.use("/api/images", uploadRouter);
   app.use("/api/majors", majorRouter);
 };
 

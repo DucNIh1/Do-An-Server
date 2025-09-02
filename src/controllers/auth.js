@@ -24,8 +24,8 @@ const generateAccessToken = (user, res) => {
 
   res.cookie("accessToken", token, {
     httpOnly: true,
-    sameSite: "none",
-    secure: process.env.NODE_ENV === "production" ? true : false,
+    // sameSite: "none",
+    // secure: process.env.NODE_ENV === "production" ? true : false,
     maxAge: 1000 * 60 * 60 * 24,
   });
 
@@ -142,36 +142,42 @@ export const login = catchAsync(async (req, res, next) => {
   });
 });
 
-//LOGIN GOOGLE
+// LOGIN GOOGLE
 export const loginWithGoogle = catchAsync(async (req, res, next) => {
   const { token } = req.body;
 
+  // 1. Verify token từ Google
   const ticket = await client.verifyIdToken({
     idToken: token,
     audience: process.env.GG_CLIENT_ID,
   });
 
   const payload = ticket.getPayload();
-  const existingUser = await prisma.user.findFirst({
+
+  // 2. Kiểm tra user đã tồn tại chưa
+  let user = await prisma.user.findFirst({
     where: {
       OR: [{ googleId: payload.sub }, { email: payload.email }],
     },
   });
-  if (existingUser)
-    return next(new AppError("Tài khoản này đã được đăng kí", 400));
 
-  let user = await prisma.user.create({
-    data: {
-      name: payload.name,
-      email: payload.email,
-      avatar: payload.picture,
-      googleId: payload.sub,
-      isVerified: true,
-    },
-  });
+  // 3. Nếu chưa có → tạo mới
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        name: payload.name,
+        email: payload.email,
+        avatar: payload.picture,
+        googleId: payload.sub,
+        isVerified: true,
+      },
+    });
+  }
 
+  // 4. Tạo accessToken
   const accessToken = generateAccessToken(user, res);
-
+  console.log(accessToken);
+  // 5. Trả về response
   res.status(200).json({
     message: "Đăng nhập thành công",
     accessToken,
