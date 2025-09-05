@@ -20,7 +20,6 @@ const checkAuth = (req, res, next) => {
     }
 
     req.user = decoded;
-
     return next();
   });
 };

@@ -194,10 +194,6 @@ export const loginWithGoogle = catchAsync(async (req, res, next) => {
 //LOGOUT
 export const logout = async (req, res, next) => {
   try {
-    const token = req.cookies?.accessToken;
-
-    if (!token) return next(new AppError("Unauthorized", 401));
-
     res.clearCookie("accessToken", {
       httpOnly: true,
       sameSite: "strict",

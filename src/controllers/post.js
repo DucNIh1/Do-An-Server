@@ -46,10 +46,17 @@ const filter = async (filters, userId) => {
             email: true,
             name: true,
             avatar: true,
+            role: true,
           },
         },
         major: {
           select: { id: true, name: true, code: true },
+        },
+        _count: {
+          select: {
+            likes: true,
+            comments: true,
+          },
         },
       },
     }),
@@ -225,4 +232,349 @@ export const changePostStatus = catchAsync(async (req, res, next) => {
   if (!updated) return next(new AppError("Thay đổi trạng thái thất bại"));
 
   res.status(200).json({ message: "Thay đổi bài viết thành công" });
+});
+
+export const toggleLike = catchAsync(async (req, res, next) => {
+  const { postId } = req.params;
+  const { userId } = req.user;
+
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+  });
+
+  if (!post) {
+    return next(new AppError("Bài viết không tồn tại", 404));
+  }
+
+  const existingLike = await prisma.like.findFirst({
+    where: {
+      userId,
+      postId,
+    },
+  });
+
+  let isLiked;
+  let totalLikes;
+
+  if (existingLike) {
+    await prisma.like.delete({
+      where: { id: existingLike.id },
+    });
+    isLiked = false;
+  } else {
+    await prisma.like.create({
+      data: {
+        userId,
+        postId,
+      },
+    });
+    isLiked = true;
+  }
+
+  totalLikes = await prisma.like.count({
+    where: { postId },
+  });
+
+  res.status(200).json({
+    success: true,
+    message: isLiked ? "Đã thích bài viết" : "Đã bỏ thích bài viết",
+    data: {
+      isLiked,
+      totalLikes,
+    },
+  });
+});
+
+export const getPostLikes = catchAsync(async (req, res, next) => {
+  const { postId } = req.params;
+  const { page = 1, limit = 10 } = req.query;
+  const skip = (+page - 1) * +limit;
+
+  const [likes, totalLikes] = await Promise.all([
+    prisma.like.findMany({
+      where: { postId },
+      skip,
+      take: +limit,
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            email: true,
+          },
+        },
+      },
+    }),
+    prisma.like.count({ where: { postId } }),
+  ]);
+
+  const totalPages = Math.ceil(totalLikes / +limit);
+
+  res.status(200).json({
+    success: true,
+    data: {
+      likes: likes.map((like) => ({
+        id: like.id,
+        user: like.user,
+        createdAt: like.createdAt,
+      })),
+      totalLikes,
+      totalPages,
+      currentPage: +page,
+      limit: +limit,
+    },
+  });
+});
+
+export const createComment = catchAsync(async (req, res, next) => {
+  const { postId } = req.params;
+  const { text } = req.body;
+  const { userId } = req.user;
+
+  if (text.length > 1000) {
+    return next(
+      new AppError("Nội dung comment không được quá 1000 ký tự", 400)
+    );
+  }
+
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+  });
+
+  if (!post) {
+    return next(new AppError("Bài viết không tồn tại", 404));
+  }
+
+  const comment = await prisma.comment.create({
+    data: {
+      text: text.trim(),
+      postId,
+      authorId: userId,
+    },
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          avatar: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  const totalComments = await prisma.comment.count({
+    where: { postId },
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "Tạo comment thành công",
+    data: {
+      comment,
+      totalComments,
+    },
+  });
+});
+
+export const getPostComments = catchAsync(async (req, res, next) => {
+  const { postId } = req.params;
+  const { page = 1, limit = 10, sort = "desc" } = req.query;
+  const skip = (+page - 1) * +limit;
+
+  const orderBy = { createdAt: sort === "asc" ? "asc" : "desc" };
+
+  const [comments, totalComments] = await Promise.all([
+    prisma.comment.findMany({
+      where: { postId },
+      skip,
+      take: +limit,
+      orderBy,
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            email: true,
+          },
+        },
+        Images: {
+          select: {
+            id: true,
+            url: true,
+            publicId: true,
+          },
+        },
+      },
+    }),
+    prisma.comment.count({ where: { postId } }),
+  ]);
+
+  const totalPages = Math.ceil(totalComments / +limit);
+
+  res.status(200).json({
+    success: true,
+    data: {
+      comments,
+      totalComments,
+      totalPages,
+      currentPage: +page,
+      limit: +limit,
+    },
+  });
+});
+
+export const updateComment = catchAsync(async (req, res, next) => {
+  const { commentId } = req.params;
+  const { text } = req.body;
+  const { userId } = req.user;
+
+  if (!text || text.trim().length === 0) {
+    return next(new AppError("Nội dung comment không được để trống", 400));
+  }
+
+  if (text.length > 1000) {
+    return next(
+      new AppError("Nội dung comment không được quá 1000 ký tự", 400)
+    );
+  }
+
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    include: {
+      author: {
+        select: { id: true, name: true, avatar: true },
+      },
+    },
+  });
+
+  if (!comment) {
+    return next(new AppError("Comment không tồn tại", 404));
+  }
+
+  if (comment.authorId !== userId && req.user.role !== "ADMIN") {
+    return next(new AppError("Bạn không có quyền sửa comment này", 403));
+  }
+
+  const updatedComment = await prisma.comment.update({
+    where: { id: commentId },
+    data: { text: text.trim() },
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          avatar: true,
+          email: true,
+        },
+      },
+      Images: {
+        select: {
+          id: true,
+          url: true,
+          publicId: true,
+        },
+      },
+    },
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Cập nhật comment thành công",
+    data: { comment: updatedComment },
+  });
+});
+
+export const deleteComment = catchAsync(async (req, res, next) => {
+  const { commentId } = req.params;
+  const { userId } = req.user;
+
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+  });
+
+  if (!comment) {
+    return next(new AppError("Comment không tồn tại", 404));
+  }
+
+  const post = await prisma.post.findUnique({
+    where: { id: comment.postId },
+    select: { authorId: true },
+  });
+
+  const canDelete =
+    comment.authorId === userId ||
+    post.authorId === userId ||
+    req.user.role === "ADMIN";
+
+  if (!canDelete) {
+    return next(new AppError("Bạn không có quyền xóa comment này", 403));
+  }
+
+  await prisma.comment.delete({
+    where: { id: commentId },
+  });
+
+  const totalComments = await prisma.comment.count({
+    where: { postId: comment.postId },
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Xóa comment thành công",
+    data: { totalComments },
+  });
+});
+
+export const getCommentById = catchAsync(async (req, res, next) => {
+  const { commentId } = req.params;
+
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    include: {
+      Images: {
+        select: {
+          id: true,
+          url: true,
+          publicId: true,
+        },
+      },
+    },
+  });
+
+  if (!comment) {
+    return next(new AppError("Bình luận không tồn tại", 404));
+  }
+
+  res.status(200).json({
+    success: true,
+    data: comment,
+  });
+});
+
+export const checkUserLiked = catchAsync(async (req, res, next) => {
+  const { postId } = req.params;
+  const { userId } = req.user;
+
+  const like = await prisma.like.findFirst({
+    where: {
+      userId,
+      postId,
+    },
+  });
+
+  const totalLikes = await prisma.like.count({
+    where: { postId },
+  });
+
+  res.status(200).json({
+    success: true,
+    data: {
+      isLiked: !!like,
+      totalLikes,
+    },
+  });
 });
