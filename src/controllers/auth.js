@@ -15,7 +15,13 @@ const client = new OAuth2Client(process.env.GG_CLIENT_ID);
 
 const generateAccessToken = (user, res) => {
   const token = jwt.sign(
-    { userId: user.id, role: user.role },
+    {
+      userId: user.id,
+      role: user.role,
+      name: user.name,
+      avatar: user.avatar,
+      email: user.email,
+    },
     process.env.JWT_ACCESS_SECRET,
     {
       expiresIn: "1d",
@@ -146,7 +152,6 @@ export const login = catchAsync(async (req, res, next) => {
 export const loginWithGoogle = catchAsync(async (req, res, next) => {
   const { token } = req.body;
 
-  // 1. Verify token từ Google
   const ticket = await client.verifyIdToken({
     idToken: token,
     audience: process.env.GG_CLIENT_ID,
@@ -154,14 +159,12 @@ export const loginWithGoogle = catchAsync(async (req, res, next) => {
 
   const payload = ticket.getPayload();
 
-  // 2. Kiểm tra user đã tồn tại chưa
   let user = await prisma.user.findFirst({
     where: {
       OR: [{ googleId: payload.sub }, { email: payload.email }],
     },
   });
 
-  // 3. Nếu chưa có → tạo mới
   if (!user) {
     user = await prisma.user.create({
       data: {
@@ -174,10 +177,7 @@ export const loginWithGoogle = catchAsync(async (req, res, next) => {
     });
   }
 
-  // 4. Tạo accessToken
   const accessToken = generateAccessToken(user, res);
-  console.log(accessToken);
-  // 5. Trả về response
   res.status(200).json({
     message: "Đăng nhập thành công",
     accessToken,
