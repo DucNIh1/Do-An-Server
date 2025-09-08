@@ -1,4 +1,3 @@
-// controllers/message.controller.js
 import prisma from "../utils/prisma.js";
 
 export const sendMessage = async (req, res, next) => {
@@ -15,10 +14,9 @@ export const sendMessage = async (req, res, next) => {
 
     let conversation = null;
 
-    // -------------- CASE: group (conversationId có) --------------
     if (conversationId) {
       conversation = await prisma.conversation.findUnique({
-        where: { id: conversationId, isGroup: true },
+        where: { id: conversationId },
         include: { members: true },
       });
       if (!conversation) {
@@ -33,9 +31,7 @@ export const sendMessage = async (req, res, next) => {
       }
     }
 
-    // -------------- CASE: DM (không có conversationId, có receiverId) --------------
     if (!conversationId && receiverId) {
-      // Tìm conversation 1-1 giữa sender và receiver
       conversation = await prisma.conversation.findFirst({
         where: {
           isGroup: false,
@@ -47,7 +43,6 @@ export const sendMessage = async (req, res, next) => {
         include: { members: true },
       });
 
-      // Nếu chưa có thì tạo mới conversation + members
       if (!conversation) {
         const createdConv = await prisma.conversation.create({
           data: { isGroup: false },
@@ -69,7 +64,6 @@ export const sendMessage = async (req, res, next) => {
     }
 
     const txResult = await prisma.$transaction(async (tx) => {
-      // 1. Tạo message
       const createdMessage = await tx.message.create({
         data: {
           text: text ?? "",
@@ -78,7 +72,6 @@ export const sendMessage = async (req, res, next) => {
         },
       });
 
-      // 2. Update imageIds -> gắn messageId
       if (Array.isArray(imageIds) && imageIds.length > 0) {
         await tx.image.updateMany({
           where: { id: { in: imageIds } },
@@ -86,7 +79,6 @@ export const sendMessage = async (req, res, next) => {
         });
       }
 
-      // 3. Lấy message đầy đủ kèm ảnh + sender
       const fullMessage = await tx.message.findUnique({
         where: { id: createdMessage.id },
         select: {
@@ -110,14 +102,12 @@ export const sendMessage = async (req, res, next) => {
         },
       });
 
-      // 4. Lấy memberIds
       const members = await tx.conversationMember.findMany({
         where: { conversationId: conversation.id },
       });
       const memberIds = members.map((m) => m.userId);
       const recipientIds = memberIds.filter((id) => id !== senderId);
 
-      // 5. Notifications
       if (recipientIds.length > 0) {
         await tx.notification.createMany({
           data: recipientIds.map((uid) => ({
@@ -232,7 +222,7 @@ export const getMessages = async (req, res, next) => {
       where: { id: targetConversationId },
       select: { id: true, name: true, isGroup: true },
     });
-
+    console.log("Conversation exists:", conversationExists);
     if (!conversationExists) {
       return res.status(404).json({
         success: false,
