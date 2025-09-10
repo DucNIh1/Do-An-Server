@@ -3,7 +3,6 @@ import prisma from "../utils/prisma.js";
 export const sendMessage = async (req, res, next) => {
   try {
     const { conversationId, receiverId, text, imageIds } = req.body;
-    console.log("Image IDs:", imageIds);
     const senderId = req.user.userId;
 
     if (!conversationId && !receiverId) {
@@ -222,7 +221,6 @@ export const getMessages = async (req, res, next) => {
       where: { id: targetConversationId },
       select: { id: true, name: true, isGroup: true },
     });
-    console.log("Conversation exists:", conversationExists);
     if (!conversationExists) {
       return res.status(404).json({
         success: false,

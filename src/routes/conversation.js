@@ -2,8 +2,12 @@ import express from "express";
 import {
   addUsersToConversation,
   createConversation,
+  deleteConversation,
+  getConversationMembers,
   getConversations,
   leaveConversation,
+  removeMemberFromConversation,
+  renameConversation,
 } from "../controllers/conversation.js";
 import checkAuth from "../middlewares/checkAuth.js";
 
@@ -13,6 +17,12 @@ router.post("/", checkAuth, createConversation);
 router.post("/:id/members", checkAuth, addUsersToConversation);
 router.get("/", checkAuth, getConversations);
 router.delete("/:id", checkAuth, leaveConversation);
+
+router.delete("/:id", checkAuth, deleteConversation);
+router.patch("/:id/rename", checkAuth, renameConversation);
+router.delete("/:id/members/:userId", checkAuth, removeMemberFromConversation);
+
+router.get("/:id/members", checkAuth, getConversationMembers);
 
 export default router;
 createConversation;
