@@ -1,28 +1,31 @@
 export const VERIFICATION_EMAIL_TEMPLATE = `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verify Your Email</title>
+  <title>Xác thực địa chỉ Email</title>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(to right, #4CAF50, #45a049); padding: 20px; text-align: center;">
-    <h1 style="color: white; margin: 0;">Verify Your Email</h1>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f4f4;">
+  <div style="background-color: #003366; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">Cổng thông tin Tuyển sinh HaUI</h1>
   </div>
-  <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-    <p>Hello,</p>
-    <p>Thank you for signing up! Your verification code is:</p>
+  <div style="background-color: #ffffff; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <h2 style="color: #003366; text-align: center;">Xác thực Email của bạn</h2>
+    <p>Xin chào,</p>
+    <p>Cảm ơn bạn đã đăng ký tài khoản! Vui lòng sử dụng mã xác thực dưới đây để hoàn tất quá trình đăng ký:</p>
     <div style="text-align: center; margin: 30px 0;">
-      <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #4CAF50;">{verificationCode}</span>
+      <div style="background-color: #FFFBEB; border: 1px solid #FDB813; border-radius: 8px; padding: 15px 20px; display: inline-block;">
+        <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #003366;">{verificationCode}</span>
+      </div>
     </div>
-    <p>Enter this code on the verification page to complete your registration.</p>
-    <p>This code will expire in 15 minutes for security reasons.</p>
-    <p>If you didn't create an account with us, please ignore this email.</p>
-    <p>Best regards,<br>Your App Team</p>
+    <p>Vì lý do bảo mật, mã này sẽ hết hạn sau <strong>15 phút</strong>.</p>
+    <p>Nếu bạn không phải là người tạo tài khoản này, vui lòng bỏ qua email này.</p>
+    <p>Trân trọng,<br>Đội ngũ Cổng thông tin Tuyển sinh HaUI</p>
   </div>
-  <div style="text-align: center; margin-top: 20px; color: #888; font-size: 0.8em;">
-    <p>This is an automated message, please do not reply to this email.</p>
+  <div style="text-align: center; margin-top: 20px; color: #888; font-size: 12px;">
+    <p>Đây là email tự động, vui lòng không trả lời email này.</p>
+    <p>&copy; ${new Date().getFullYear()} Đại học Công nghiệp Hà Nội</p>
   </div>
 </body>
 </html>
@@ -30,36 +33,37 @@ export const VERIFICATION_EMAIL_TEMPLATE = `
 
 export const PASSWORD_RESET_SUCCESS_TEMPLATE = `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Password Reset Successful</title>
+  <title>Đặt lại mật khẩu thành công</title>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(to right, #4CAF50, #45a049); padding: 20px; text-align: center;">
-    <h1 style="color: white; margin: 0;">Password Reset Successful</h1>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f4f4;">
+  <div style="background-color: #003366; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">Cổng thông tin Tuyển sinh HaUI</h1>
   </div>
-  <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-    <p>Hello,</p>
-    <p>We're writing to confirm that your password has been successfully reset.</p>
+  <div style="background-color: #ffffff; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <h2 style="color: #003366; text-align: center;">Đặt lại mật khẩu thành công</h2>
+    <p>Xin chào,</p>
+    <p>Chúng tôi gửi email này để xác nhận rằng mật khẩu cho tài khoản của bạn đã được đặt lại thành công.</p>
     <div style="text-align: center; margin: 30px 0;">
-      <div style="background-color: #4CAF50; color: white; width: 50px; height: 50px; line-height: 50px; border-radius: 50%; display: inline-block; font-size: 30px;">
-        ✓
+      <div style="background-color: #003366; color: white; width: 60px; height: 60px; line-height: 60px; border-radius: 50%; display: inline-block; font-size: 36px;">
+        &#10003;
       </div>
     </div>
-    <p>If you did not initiate this password reset, please contact our support team immediately.</p>
-    <p>For security reasons, we recommend that you:</p>
-    <ul>
-      <li>Use a strong, unique password</li>
-      <li>Enable two-factor authentication if available</li>
-      <li>Avoid using the same password across multiple sites</li>
+    <p>Nếu bạn không phải là người thực hiện yêu cầu này, vui lòng liên hệ với đội ngũ hỗ trợ của chúng tôi ngay lập tức.</p>
+    <p>Để giữ an toàn cho tài khoản, chúng tôi khuyến nghị bạn:</p>
+    <ul style="padding-left: 20px;">
+      <li>Sử dụng mật khẩu mạnh và không trùng lặp.</li>
+      <li>Bật xác thực hai yếu tố (nếu có).</li>
+      <li>Tránh sử dụng cùng một mật khẩu cho nhiều trang web khác nhau.</li>
     </ul>
-    <p>Thank you for helping us keep your account secure.</p>
-    <p>Best regards,<br>Your App Team</p>
+    <p>Trân trọng,<br>Đội ngũ Cổng thông tin Tuyển sinh HaUI</p>
   </div>
-  <div style="text-align: center; margin-top: 20px; color: #888; font-size: 0.8em;">
-    <p>This is an automated message, please do not reply to this email.</p>
+  <div style="text-align: center; margin-top: 20px; color: #888; font-size: 12px;">
+    <p>Đây là email tự động, vui lòng không trả lời email này.</p>
+    <p>&copy; ${new Date().getFullYear()} Đại học Công nghiệp Hà Nội</p>
   </div>
 </body>
 </html>
@@ -67,28 +71,62 @@ export const PASSWORD_RESET_SUCCESS_TEMPLATE = `
 
 export const PASSWORD_RESET_REQUEST_TEMPLATE = `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reset Your Password</title>
+  <title>Yêu cầu đặt lại mật khẩu</title>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(to right, #4CAF50, #45a049); padding: 20px; text-align: center;">
-    <h1 style="color: white; margin: 0;">Password Reset</h1>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f4f4;">
+  <div style="background-color: #003366; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">Cổng thông tin Tuyển sinh HaUI</h1>
   </div>
-  <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-    <p>Hello,</p>
-    <p>We received a request to reset your password. If you didn't make this request, please ignore this email.</p>
-    <p>To reset your password, click the button below:</p>
+  <div style="background-color: #ffffff; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <h2 style="color: #003366; text-align: center;">Yêu cầu đặt lại mật khẩu</h2>
+    <p>Xin chào,</p>
+    <p>Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn. Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email.</p>
+    <p>Để tiếp tục quá trình đặt lại mật khẩu, vui lòng nhấp vào nút bên dưới:</p>
     <div style="text-align: center; margin: 30px 0;">
-      <a href="{resetURL}" style="background-color: #4CAF50; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Reset Password</a>
+      <a href="{resetURL}" style="background-color: #003366; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">Đặt lại mật khẩu</a>
     </div>
-    <p>This link will expire in 1 hour for security reasons.</p>
-    <p>Best regards,<br>Your App Team</p>
+    <p>Vì lý do bảo mật, liên kết này sẽ hết hạn sau <strong>1 giờ</strong>.</p>
+    <p>Trân trọng,<br>Đội ngũ Cổng thông tin Tuyển sinh HaUI</p>
   </div>
-  <div style="text-align: center; margin-top: 20px; color: #888; font-size: 0.8em;">
-    <p>This is an automated message, please do not reply to this email.</p>
+  <div style="text-align: center; margin-top: 20px; color: #888; font-size: 12px;">
+    <p>Đây là email tự động, vui lòng không trả lời email này.</p>
+    <p>&copy; ${new Date().getFullYear()} Đại học Công nghiệp Hà Nội</p>
+  </div>
+</body>
+</html>
+`;
+
+export const CONSULTATION_REQUEST_SUCCESS_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Yêu cầu tư vấn đã được gửi thành công</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f4f4;">
+  <div style="background-color: #003366; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">Cổng thông tin Tuyển sinh HaUI</h1>
+  </div>
+  <div style="background-color: #ffffff; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <h2 style="color: #003366; text-align: center;">🎉 Yêu cầu tư vấn đã được gửi thành công!</h2>
+    <p>Chào <strong>{fullName}</strong>,</p>
+    <p>
+      Cảm ơn bạn đã quan tâm đến chương trình tuyển sinh của trường. Yêu cầu tư vấn của bạn đã được ghi nhận. 
+      Đội ngũ tư vấn của Đại học Công nghiệp Hà Nội sẽ liên hệ với bạn trong thời gian sớm nhất qua số điện thoại <strong>{phoneNumber}</strong> hoặc email <strong>{email}</strong>.
+    </p>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="{homeURL}" style="background-color: #FDB813; color: #003366; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">Quay lại trang chủ</a>
+    </div>
+
+  </div>
+  <div style="text-align: center; margin-top: 20px; color: #888; font-size: 12px;">
+    <p>Đây là email tự động, vui lòng không trả lời email này.</p>
+    <p>&copy; ${new Date().getFullYear()} Đại học Công nghiệp Hà Nội</p>
   </div>
 </body>
 </html>

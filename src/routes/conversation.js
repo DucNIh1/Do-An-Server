@@ -16,9 +16,8 @@ const router = express.Router();
 router.post("/", checkAuth, createConversation);
 router.post("/:id/members", checkAuth, addUsersToConversation);
 router.get("/", checkAuth, getConversations);
-router.delete("/:id", checkAuth, leaveConversation);
-
 router.delete("/:id", checkAuth, deleteConversation);
+router.post("/:id/leave", checkAuth, leaveConversation);
 router.patch("/:id/rename", checkAuth, renameConversation);
 router.delete("/:id/members/:userId", checkAuth, removeMemberFromConversation);
 

@@ -9,26 +9,29 @@ datasource db {
 }
 
 model User {
-  id                 String              @id @default(uuid()) @db.Uuid
-  email              String              @unique
-  password           String?
-  name               String
-  googleId           String?             @unique
-  avatar             String?
-  role               Role                @default(STUDENT)
-  isVerified         Boolean             @default(false)
-  isActive           Boolean             @default(true) 
-  deletedAt          DateTime?      
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  id                  String              @id @default(uuid()) @db.Uuid
+  email               String              @unique
+  password            String?
+  name                String
+  googleId            String?             @unique
+  avatar              String?
+  role                Role                @default(STUDENT)
+  isVerified          Boolean             @default(false)
+  isActive            Boolean             @default(true) 
+  deletedAt           DateTime?      
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
-  comments           Comment[]
-  likes              Like[]
-  notifications      Notification[]
-  posts              Post[]
-  messagesSent       Message[]           @relation("MessageSender")
+  comments            Comment[]
+  likes               Like[]
+  posts               Post[]
+  messagesSent        Message[]           @relation("MessageSender")
   conversationMembers ConversationMember[]
+
+  notificationsReceived Notification[]     @relation("NotificationsReceived") 
+  notificationsCreated  Notification[]     @relation("NotificationsCreated")  
 }
+
 
 
 model Major {
@@ -38,6 +41,8 @@ model Major {
   deletedAt  DateTime?
   name  String
   posts Post[]
+
+  ConsultationRequest ConsultationRequest[]
 }
 
 
@@ -61,6 +66,8 @@ model Post {
   major        Major?    @relation(fields: [majorId], references: [id])
 
   images       Image[]
+
+  Notification Notification[]
 }
 
 
@@ -95,6 +102,8 @@ model Conversation {
 
   messages  Message[]
   members   ConversationMember[]
+
+  Notification Notification[]
 }
 
 
@@ -140,26 +149,41 @@ model Image {
 
 
 model Notification {
-  id         String           @id @default(uuid()) @db.Uuid
-  type       NotificationType
-  message    String
-  userId     String           @db.Uuid
-  commentId  String?          @db.Uuid
-  messageId  String?          @db.Uuid
-  read       Boolean          @default(false)
-  createdAt  DateTime         @default(now())
+  id              String           @id @default(uuid()) @db.Uuid
+  type            NotificationType
+  message         String
+  userId          String           @db.Uuid      
+  commentId       String?          @db.Uuid
+  messageId       String?          @db.Uuid
+  postId          String?          @db.Uuid
+  conversationId  String?          @db.Uuid
+  read            Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  createdById     String?          @db.Uuid  
 
-  comment    Comment?         @relation(fields: [commentId], references: [id])
-  messageRef Message?         @relation(fields: [messageId], references: [id])
-  user       User             @relation(fields: [userId], references: [id])
+  link            String?
+
+  comment         Comment?         @relation(fields: [commentId], references: [id])
+  conversation    Conversation?    @relation(fields: [conversationId], references: [id])
+  post            Post?            @relation(fields: [postId], references: [id])
+  messageRef      Message?         @relation(fields: [messageId], references: [id])
+
+  user            User             @relation("NotificationsReceived", fields: [userId], references: [id])
+
+  createdBy       User?            @relation("NotificationsCreated", fields: [createdById], references: [id])
 }
+
 
 model ConsultationRequest {
   id          String        @id @default(uuid()) @db.Uuid
   fullName    String
   phoneNumber String
-  content     String?
   status      RequestStatus @default(PENDING)
+  address     String?
+  email       String
+  majorId   String        @db.Uuid
+  major       Major       @relation(fields: [majorId], references: [id])
+  birthDate  DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 }
@@ -181,6 +205,8 @@ enum NotificationType {
   COMMENT
   LIKE
   MESSAGE
+  FROM_ADMIN
+  CONVERSATION
 }
 
 enum PostStatus {

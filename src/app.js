@@ -10,6 +10,8 @@ import "./jobs/user.js";
 import "./jobs/post.js";
 import { Server } from "socket.io";
 import { initializeSocket, getUserSocketMap } from "./socket/socket.js";
+import { setIO } from "./socket/socketInstance.js";
+import "./workers/notificationWorker.js";
 
 dotenv.config();
 const app = express();
@@ -28,7 +30,7 @@ const io = new Server(server, {
     credentials: true,
   },
 });
-
+setIO(io);
 app.use((req, res, next) => {
   req.io = io;
   req.userSocketMap = getUserSocketMap();

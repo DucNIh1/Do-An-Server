@@ -122,22 +122,13 @@ export const sendMessage = async (req, res, next) => {
       return { fullMessage, memberIds, recipientIds };
     });
 
-    const { fullMessage, memberIds, recipientIds } = txResult;
+    const { fullMessage, recipientIds } = txResult;
 
     if (req.io) {
       recipientIds.forEach((uid) => {
-        console.log("Emitting to userId:", uid);
         req.io.to(uid).emit("newMessage", {
           conversationId: conversation.id,
           message: fullMessage,
-        });
-      });
-
-      recipientIds.forEach((uid) => {
-        req.io.to(uid).emit("newNotification", {
-          type: "MESSAGE",
-          messageId: fullMessage.id,
-          conversationId: conversation.id,
         });
       });
     }

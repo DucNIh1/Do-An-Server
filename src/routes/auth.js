@@ -6,7 +6,6 @@ import {
   login,
   loginWithGoogle,
 } from "../controllers/auth.js";
-// import checkAuth from "../middlewares/checkAuth.js";
 
 const router = express.Router();
 

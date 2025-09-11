@@ -1,8 +1,13 @@
 import catchAsync from "../utils/CatchAsync.js";
 import prisma from "../utils/prisma.js";
 import AppError from "../utils/AppError.js";
-import { PostStatus, Role } from "../../generated/prisma/index.js";
+import {
+  NotificationType,
+  PostStatus,
+  Role,
+} from "../../generated/prisma/index.js";
 import FilterData from "../utils/FilterData.js";
+import { notificationQueue } from "../queue.js";
 
 const filter = async (filters, userId) => {
   const {
@@ -236,19 +241,18 @@ export const changePostStatus = catchAsync(async (req, res, next) => {
 
 export const toggleLike = catchAsync(async (req, res, next) => {
   const { postId } = req.params;
-  const { userId } = req.user;
+  const currentUser = req.user;
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
   });
-
   if (!post) {
     return next(new AppError("Bài viết không tồn tại", 404));
   }
 
   const existingLike = await prisma.like.findFirst({
     where: {
-      userId,
+      userId: currentUser.userId,
       postId,
     },
   });
@@ -264,7 +268,7 @@ export const toggleLike = catchAsync(async (req, res, next) => {
   } else {
     await prisma.like.create({
       data: {
-        userId,
+        userId: currentUser.userId,
         postId,
       },
     });
@@ -274,6 +278,22 @@ export const toggleLike = catchAsync(async (req, res, next) => {
   totalLikes = await prisma.like.count({
     where: { postId },
   });
+
+  if (isLiked) {
+    await notificationQueue.add("sendNotification", {
+      userIds: [post.authorId],
+      type: NotificationType.LIKE,
+      message: `${currentUser.name} đã thích bài đăng của bạn`,
+      postId: postId,
+      link: `${postId}`,
+      createdBy: {
+        id: currentUser.userId,
+        name: currentUser.name,
+        avatar: currentUser.avatar,
+        role: currentUser.role,
+      },
+    });
+  }
 
   res.status(200).json({
     success: true,
@@ -331,7 +351,7 @@ export const getPostLikes = catchAsync(async (req, res, next) => {
 export const createComment = catchAsync(async (req, res, next) => {
   const { postId } = req.params;
   const { text } = req.body;
-  const { userId } = req.user;
+  const currentUser = req.user;
 
   if (text.length > 1000) {
     return next(
@@ -351,7 +371,7 @@ export const createComment = catchAsync(async (req, res, next) => {
     data: {
       text: text.trim(),
       postId,
-      authorId: userId,
+      authorId: currentUser.userId,
     },
     include: {
       author: {
@@ -367,6 +387,20 @@ export const createComment = catchAsync(async (req, res, next) => {
 
   const totalComments = await prisma.comment.count({
     where: { postId },
+  });
+
+  await notificationQueue.add("sendNotification", {
+    userIds: [post.authorId],
+    type: NotificationType.LIKE,
+    message: `${currentUser.name} đã bình luận tại đăng của bạn`,
+    postId: postId,
+    link: `${postId}`,
+    createdBy: {
+      id: currentUser.userId,
+      name: currentUser.name,
+      avatar: currentUser.avatar,
+      role: currentUser.role,
+    },
   });
 
   res.status(201).json({

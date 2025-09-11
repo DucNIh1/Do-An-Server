@@ -1,9 +1,46 @@
 import nodemailer from "nodemailer";
 import {
+  CONSULTATION_REQUEST_SUCCESS_TEMPLATE,
   PASSWORD_RESET_REQUEST_TEMPLATE,
   PASSWORD_RESET_SUCCESS_TEMPLATE,
   VERIFICATION_EMAIL_TEMPLATE,
 } from "./emailTemplates.js";
+
+export const sendConsultationSuccessEmail = async ({
+  email,
+  fullName,
+  phoneNumber,
+  homeURL,
+}) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_AUTH,
+        pass: process.env.PASSWORD_AUTH,
+      },
+    });
+
+    const html = CONSULTATION_REQUEST_SUCCESS_TEMPLATE.replace(
+      "{fullName}",
+      fullName
+    )
+      .replace("{phoneNumber}", phoneNumber)
+      .replace("{email}", email)
+      .replace("{homeURL}", homeURL || process.env.FRONTEND_URL);
+
+    await transporter.sendMail({
+      from: `"Trung Tâm Tư Vấn Tuyển Sinh Trường Đại Học Công Nghiệp Hà Nội" <${process.env.EMAIL_AUTH}>`,
+      to: `${email}`,
+      subject: "Xác nhận yêu cầu tư vấn của bạn",
+      html,
+    });
+  } catch (error) {
+    throw new Error(
+      `Error sending consultation success email: ${error.message}`
+    );
+  }
+};
 
 // Hàm gửi email xác minh
 export const sendVerificationEmail = async (email, verificationToken) => {
@@ -17,9 +54,9 @@ export const sendVerificationEmail = async (email, verificationToken) => {
     });
 
     await transporter.sendMail({
-      from: `"Gemme Blog 👻" <${process.env.EMAIL_AUTH}>`,
-      to: `${email}`, 
-      subject: "Verify your email", 
+      from: `Trung Tâm Tư Vấn Tuyển Sinh Trường Đại Học Công Nghiệp Hà Nội" <${process.env.EMAIL_AUTH}>`,
+      to: `${email}`,
+      subject: "XÁC MINH EMAIL CỦA BẠN",
       html: VERIFICATION_EMAIL_TEMPLATE.replace(
         "{verificationCode}",
         verificationToken
@@ -41,9 +78,9 @@ export const sendPasswordResetEmail = async (email, url) => {
     });
 
     await transporter.sendMail({
-      from: `"Gemme Blog 👻" <${process.env.EMAIL_AUTH}>`,
+      from: `Trung Tâm Tư Vấn Tuyển Sinh Trường Đại Học Công Nghiệp Hà Nội" <${process.env.EMAIL_AUTH}>`,
       to: `${email}`,
-      subject: "RESET YOUR PASSWORD",
+      subject: "Khôi phục mật khẩu của bạn",
       html: PASSWORD_RESET_REQUEST_TEMPLATE.replace("{resetURL}", url),
     });
   } catch (error) {
@@ -62,9 +99,9 @@ export const sendResetSuccessEmail = async (email) => {
     });
 
     await transporter.sendMail({
-      from: `"Gemme Blog 👻" <${process.env.EMAIL_AUTH}>`,
+      from: `Trung Tâm Tư Vấn Tuyển Sinh Trường Đại Học Công Nghiệp Hà Nội" <${process.env.EMAIL_AUTH}>`,
       to: `${email}`,
-      subject: "RESET YOUR PASSWORD SUCCESS",
+      subject: "Mật khẩu của bạn đã được thay đổi",
       html: PASSWORD_RESET_SUCCESS_TEMPLATE,
     });
   } catch (error) {

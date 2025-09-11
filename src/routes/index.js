@@ -5,6 +5,8 @@ import majorRouter from "./major.js";
 import messageRouter from "./message.js";
 import conversationRouter from "./conversation.js";
 import userRouter from "./user.js";
+import notificationRouter from "./notification.js";
+import consultationRequestRouter from "./consultationRequest.js";
 
 const AppRouter = (app) => {
   app.use("/api/auth", authRouter);
@@ -14,6 +16,8 @@ const AppRouter = (app) => {
   app.use("/api/messages", messageRouter);
   app.use("/api/conversations", conversationRouter);
   app.use("/api/users", userRouter);
+  app.use("/api/notifications", notificationRouter);
+  app.use("/api/consultation-requests", consultationRequestRouter);
 };
 
 export default AppRouter;

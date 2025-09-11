@@ -1,4 +1,5 @@
-import { Role } from "../../generated/prisma/index.js";
+import { NotificationType, Role } from "../../generated/prisma/index.js";
+import { notificationQueue } from "../queue.js";
 import prisma from "../utils/prisma.js";
 
 export const addUsersToConversation = async (req, res, next) => {
@@ -26,6 +27,20 @@ export const addUsersToConversation = async (req, res, next) => {
           addedBy: currentUser.userId,
         });
       }
+    });
+
+    await notificationQueue.add("sendNotification", {
+      userIds,
+      type: NotificationType.CONVERSATION,
+      message: `${currentUser.name} đã thêm bạn vào một nhóm chat`,
+      link: `${id}`,
+      conversationId: id,
+      createdBy: {
+        id: currentUser.userId,
+        name: currentUser.name,
+        avatar: currentUser.avatar,
+        role: currentUser.role,
+      },
     });
 
     return res.status(201).json({ added: userIds });
@@ -154,7 +169,7 @@ export const getConversations = async (req, res, next) => {
 export const leaveConversation = async (req, res, next) => {
   try {
     const { id: conversationId } = req.params;
-    const userId = req.user.id;
+    const { userId } = req.user;
 
     const member = await prisma.conversationMember.findUnique({
       where: {
@@ -313,15 +328,18 @@ export const removeMemberFromConversation = async (req, res, next) => {
       },
     });
 
-    if (req.io) {
-      req.io.to(userId).emit("removedFromConversation", { conversationId });
-      req.io.to(conversationId).emit("memberRemoved", {
-        conversationId,
-        removedUserId: userId,
-        removedBy: currentUser.userId,
-      });
-    }
-
+    await notificationQueue.add("sendNotification", {
+      userIds: [userId],
+      type: NotificationType.CONVERSATION,
+      message: `${currentUser.name} đã xoá bạn khỏi một nhóm chat`,
+      conversationId: conversationId,
+      createdBy: {
+        id: currentUser.userId,
+        name: currentUser.name,
+        avatar: currentUser.avatar,
+        role: currentUser.role,
+      },
+    });
     res.status(200).json({ message: "Đã xoá thành viên khỏi hội thoại" });
   } catch (err) {
     next(err);
