@@ -107,18 +107,6 @@ export const sendMessage = async (req, res, next) => {
       const memberIds = members.map((m) => m.userId);
       const recipientIds = memberIds.filter((id) => id !== senderId);
 
-      if (recipientIds.length > 0) {
-        await tx.notification.createMany({
-          data: recipientIds.map((uid) => ({
-            type: "MESSAGE",
-            message: text && text.trim() ? text : "Bạn có tin nhắn mới",
-            userId: uid,
-            messageId: createdMessage.id,
-          })),
-          skipDuplicates: true,
-        });
-      }
-
       return { fullMessage, memberIds, recipientIds };
     });
 
