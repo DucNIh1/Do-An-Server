@@ -7,6 +7,7 @@ import conversationRouter from "./conversation.js";
 import userRouter from "./user.js";
 import notificationRouter from "./notification.js";
 import consultationRequestRouter from "./consultationRequest.js";
+import analyticsRouter from "./analytics.js";
 
 const AppRouter = (app) => {
   app.use("/api/auth", authRouter);
@@ -18,6 +19,7 @@ const AppRouter = (app) => {
   app.use("/api/users", userRouter);
   app.use("/api/notifications", notificationRouter);
   app.use("/api/consultation-requests", consultationRequestRouter);
+  app.use("/api/analytics", analyticsRouter);
 };
 
 export default AppRouter;

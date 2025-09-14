@@ -1,13 +1,17 @@
 import prisma from "../utils/prisma.js";
-import {
-  sendConsultationSuccessEmail,
-  sendVerificationEmail,
-} from "../nodemail/mail.js";
+import { sendConsultationSuccessEmail } from "../nodemail/mail.js";
 import catchAsync from "../utils/CatchAsync.js";
 import { RequestStatus } from "../../generated/prisma/index.js";
 
 export const getConsultationRequests = catchAsync(async (req, res, next) => {
-  const { status, majorId, page = 1, limit = 10 } = req.query;
+  const {
+    status,
+    majorId,
+    page = 1,
+    limit = 10,
+    sort = "desc",
+    search,
+  } = req.query;
 
   const currentPage = parseInt(page);
   const pageSize = parseInt(limit);
@@ -16,6 +20,13 @@ export const getConsultationRequests = catchAsync(async (req, res, next) => {
   const whereClause = {};
   if (status) whereClause.status = status;
   if (majorId) whereClause.majorId = majorId;
+
+  if (search) {
+    whereClause.OR = [
+      { fullName: { contains: search, mode: "insensitive" } },
+      { email: { contains: search, mode: "insensitive" } },
+    ];
+  }
 
   const totalRequests = await prisma.consultationRequest.count({
     where: whereClause,
@@ -26,7 +37,7 @@ export const getConsultationRequests = catchAsync(async (req, res, next) => {
     where: whereClause,
     skip,
     take: pageSize,
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: sort === "asc" ? "asc" : "desc" },
     include: {
       major: {
         select: { id: true, name: true },

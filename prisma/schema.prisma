@@ -48,9 +48,9 @@ model Major {
 
 model Post {
   id           String    @id @default(uuid()) @db.Uuid
-  title        String
+  title        String?
   content      String
-  teaser       String?    
+  teaser       String?
   isFromSchool Boolean   @default(false)
   isFeatured   Boolean   @default(false)
   authorId     String    @db.Uuid
@@ -62,7 +62,7 @@ model Post {
   deletedAt    DateTime?
   comments     Comment[]
   likes        Like[]
-  author       User      @relation(fields: [authorId], references: [id])
+  author       User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   major        Major?    @relation(fields: [majorId], references: [id])
 
   images       Image[]
@@ -78,7 +78,7 @@ model Comment {
   authorId      String         @db.Uuid
   createdAt     DateTime       @default(now())
   author        User           @relation(fields: [authorId], references: [id])
-  post          Post           @relation(fields: [postId], references: [id])
+  post          Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
   notifications Notification[]
 
   Images Image[]
@@ -89,7 +89,7 @@ model Like {
   userId    String   @db.Uuid
   postId    String   @db.Uuid
   createdAt DateTime @default(now())
-  post      Post     @relation(fields: [postId], references: [id])
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id])
 }
 
@@ -142,7 +142,7 @@ model Image {
   messageId   String?   @db.Uuid
   createdAt   DateTime  @default(now())
 
-  post        Post?     @relation(fields: [postId], references: [id])
+  post        Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
   comment     Comment?  @relation(fields: [commentId], references: [id])
   message     Message?  @relation(fields: [messageId], references: [id])
 }

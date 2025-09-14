@@ -7,7 +7,7 @@ import {
   Role,
 } from "../../generated/prisma/index.js";
 import FilterData from "../utils/FilterData.js";
-import { notificationQueue } from "../queue.js";
+import { deleteImageQueue, notificationQueue } from "../queue.js";
 
 const filter = async (filters, userId) => {
   const {
@@ -28,8 +28,8 @@ const filter = async (filters, userId) => {
 
   if (isDeleted !== undefined) where.isDeleted = Boolean(+isDeleted);
   if (title) where.title = { contains: title, mode: "insensitive" };
-  if (isFeatured !== undefined) where.isFeatured = Boolean(+isFeatured);
-  if (isFromSchool !== undefined) where.isFromSchool = Boolean(+isFromSchool);
+  if (isFeatured !== undefined) where.isFeatured = isFeatured === "true";
+  if (isFromSchool !== undefined) where.isFromSchool = isFromSchool === "true";
   if (status) where.status = status;
   if (majorId) where.majorId = majorId;
 
@@ -81,13 +81,18 @@ export const getPosts = catchAsync(async (req, res, next) => {
   const { results, totalPages, currentPage, limit } = await filter(req.query);
   res
     .status(200)
-    .json({ posts: results, totalPage: totalPages, currentPage, limit });
+    .json({ posts: results, totalPages: totalPages, currentPage, limit });
 });
 
 export const getPost = catchAsync(async (req, res, next) => {
   const post = await prisma.post.findUnique({
-    where: { id: +req.params.id },
-    include: { user: true },
+    where: { id: req.params.id },
+    include: {
+      author: {
+        select: { id: true, name: true, email: true, avatar: true, role: true },
+      },
+      images: true,
+    },
   });
   if (!post) return next(new AppError("Không tìm thấy bài viết", 404));
   res.status(200).json({ post });
@@ -140,7 +145,12 @@ export const deletePost = catchAsync(async (req, res, next) => {
 
   const where = role === Role.STUDENT ? { id, authorId: userId } : { id };
 
-  const post = await prisma.post.findFirst({ where });
+  const post = await prisma.post.findFirst({
+    where,
+    include: {
+      images: true,
+    },
+  });
   if (!post) {
     return next(
       new AppError(
@@ -148,6 +158,14 @@ export const deletePost = catchAsync(async (req, res, next) => {
         404
       )
     );
+  }
+
+  if (post.images?.length > 0) {
+    for (const img of post.images) {
+      if (img.publicId) {
+        await deleteImageQueue.add("deleteImage", { publicId: img.publicId });
+      }
+    }
   }
 
   await prisma.post.delete({ where: { id } });
@@ -159,7 +177,7 @@ export const deletePost = catchAsync(async (req, res, next) => {
 export const updatePost = catchAsync(async (req, res, next) => {
   const { userId } = req.user;
   const { id } = req.params;
-  const { title, content, image, teaser } = req.body;
+  const { title, content, teaser, isFeatured } = req.body;
 
   const post = await prisma.post.findFirst({
     where: { id: id, authorId: userId },
@@ -168,7 +186,7 @@ export const updatePost = catchAsync(async (req, res, next) => {
 
   await prisma.post.update({
     where: { id: id },
-    data: { title, content, image, teaser },
+    data: { title, content, isFeatured, teaser },
   });
 
   res.status(200).json({ message: "Cập nhật bài viết thành công" });
@@ -176,7 +194,8 @@ export const updatePost = catchAsync(async (req, res, next) => {
 
 export const createPost = catchAsync(async (req, res, next) => {
   const { userId, role } = req.user;
-  const { title, content, teaser, isFromSchool, majorId } = req.body;
+  const { title, content, teaser, isFromSchool, majorId, isFeatured } =
+    req.body;
   let status = req.body.status;
 
   if (role === Role.STUDENT) {
@@ -198,6 +217,7 @@ export const createPost = catchAsync(async (req, res, next) => {
     status,
     isFromSchool,
     majorId,
+    isFeatured,
     authorId: userId,
   });
   const newPost = await prisma.post.create({ data });
@@ -245,6 +265,9 @@ export const toggleLike = catchAsync(async (req, res, next) => {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
+    include: {
+      author: true,
+    },
   });
   if (!post) {
     return next(new AppError("Bài viết không tồn tại", 404));
@@ -279,7 +302,7 @@ export const toggleLike = catchAsync(async (req, res, next) => {
     where: { postId },
   });
 
-  if (isLiked) {
+  if (isLiked && post.author.id !== currentUser.userId) {
     await notificationQueue.add("sendNotification", {
       userIds: [post.authorId],
       type: NotificationType.LIKE,
@@ -361,6 +384,9 @@ export const createComment = catchAsync(async (req, res, next) => {
 
   const post = await prisma.post.findUnique({
     where: { id: postId },
+    include: {
+      author: true,
+    },
   });
 
   if (!post) {
@@ -389,19 +415,20 @@ export const createComment = catchAsync(async (req, res, next) => {
     where: { postId },
   });
 
-  await notificationQueue.add("sendNotification", {
-    userIds: [post.authorId],
-    type: NotificationType.LIKE,
-    message: `${currentUser.name} đã bình luận tại đăng của bạn`,
-    postId: postId,
-    link: `${postId}`,
-    createdBy: {
-      id: currentUser.userId,
-      name: currentUser.name,
-      avatar: currentUser.avatar,
-      role: currentUser.role,
-    },
-  });
+  if (post.author.id !== currentUser.userId)
+    await notificationQueue.add("sendNotification", {
+      userIds: [post.authorId],
+      type: NotificationType.LIKE,
+      message: `${currentUser.name} đã bình luận tại đăng của bạn`,
+      postId: postId,
+      link: `${postId}`,
+      createdBy: {
+        id: currentUser.userId,
+        name: currentUser.name,
+        avatar: currentUser.avatar,
+        role: currentUser.role,
+      },
+    });
 
   res.status(201).json({
     success: true,
@@ -610,5 +637,44 @@ export const checkUserLiked = catchAsync(async (req, res, next) => {
       isLiked: !!like,
       totalLikes,
     },
+  });
+});
+
+export const getTopPosts = catchAsync(async (req, res, next) => {
+  const limit = Number(req.query.limit) || 5;
+
+  const topPosts = await prisma.post.findMany({
+    where: {
+      isDeleted: false,
+      status: "verified",
+    },
+    select: {
+      id: true,
+      title: true,
+      teaser: true,
+
+      createdAt: true,
+      author: {
+        select: { id: true, name: true, avatar: true },
+      },
+      images: true,
+      _count: {
+        select: {
+          likes: true,
+          comments: true,
+        },
+      },
+    },
+    orderBy: {
+      likes: {
+        _count: "desc",
+      },
+    },
+    take: limit,
+  });
+
+  res.status(200).json({
+    message: "Lấy danh sách bài viết nhiều tương tác thành công",
+    data: topPosts,
   });
 });

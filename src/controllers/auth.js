@@ -72,9 +72,7 @@ export const signup = catchAsync(async (req, res, next) => {
   ).toString();
 
   const verifyKey = `verify:${userId}`;
-  await redisClient.set(verifyKey, verificationToken, {
-    EX: 60 * 60 * 24,
-  });
+  await redisClient.set(verifyKey, verificationToken, "EX", 60 * 60 * 24);
 
   await sendVerificationEmail(email, verificationToken);
 
@@ -101,7 +99,11 @@ export const login = catchAsync(async (req, res, next) => {
   if (!user) {
     return next(new AppError("Tài khoản hoặc mật khẩu không chính xác", 400));
   }
-
+  if (user.isActive === false) {
+    return next(
+      new AppError("Tài khoản của bạn đã bị khoá do vi phạm chính sách!", 401)
+    );
+  }
   if (user.googleId) {
     return next(
       new AppError(
@@ -122,9 +124,7 @@ export const login = catchAsync(async (req, res, next) => {
     ).toString();
 
     const verifyKey = `verify:${user.id}`;
-    await redisClient.set(verifyKey, verificationToken, {
-      EX: 60 * 60 * 24,
-    });
+    await redisClient.set(verifyKey, verificationToken, "EX", 60 * 60 * 24);
 
     await sendVerificationEmail(email, verificationToken);
 

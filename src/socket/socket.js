@@ -32,8 +32,6 @@ export const initializeSocket = (io) => {
   });
 
   io.on("connection", (socket) => {
-    console.log(`✅ User ${socket.userId} connected with socket ${socket.id}`);
-
     socket.join(socket.userId);
 
     const user = {
@@ -53,10 +51,6 @@ export const initializeSocket = (io) => {
     emitOnlineUsers(io);
 
     socket.on("disconnect", () => {
-      console.log(
-        `❌ User ${socket.userId} disconnected from socket ${socket.id}`
-      );
-
       const entry = userSocketMap.get(socket.userId);
       if (entry) {
         entry.sockets = entry.sockets.filter((id) => id !== socket.id);

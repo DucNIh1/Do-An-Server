@@ -13,7 +13,7 @@ import {
   getPostLikes,
   getPosts,
   getReleatedPosts,
-  publishPost,
+  getTopPosts,
   setFeaturedPost,
   toggleLike,
   updateComment,
@@ -24,18 +24,19 @@ import checkRole from "../middlewares/checkRole.js";
 
 const router = express.Router();
 
-router.patch("/:id/status", checkAuth, checkRole("admin"), changePostStatus);
+router.patch("/:id/status", checkAuth, checkRole("ADMIN"), changePostStatus);
 
 router.patch(
   "/:id/featured-post",
   checkAuth,
-  checkRole("admin"),
+  checkRole("ADMIN"),
   setFeaturedPost
 );
 
 router.get("/releated", getReleatedPosts);
 router.get("/my-posts", checkAuth, getMyPosts);
 
+router.get("/top", getTopPosts);
 router.route("/").get(getPosts).post(checkAuth, createPost);
 
 router
@@ -58,4 +59,5 @@ router.put("/comments/:commentId", checkAuth, updateComment);
 router.get("/comments/:commentId", getCommentById);
 
 router.delete("/comments/:commentId", checkAuth, deleteComment);
+
 export default router;

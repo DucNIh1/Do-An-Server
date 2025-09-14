@@ -3,7 +3,7 @@ import catchAsync from "../utils/CatchAsync.js";
 import AppError from "../utils/AppError.js";
 
 export const getUsers = catchAsync(async (req, res, next) => {
-  let { page = 1, limit = 10, name, email, isActive } = req.query;
+  let { page = 1, limit = 10, search, isActive, role } = req.query;
 
   page = parseInt(page, 10) || 1;
   limit = parseInt(limit, 10) || 10;
@@ -11,8 +11,15 @@ export const getUsers = catchAsync(async (req, res, next) => {
 
   const where = {
     AND: [
-      name ? { name: { contains: name, mode: "insensitive" } } : {},
-      email ? { email: { contains: email, mode: "insensitive" } } : {},
+      search
+        ? {
+            OR: [
+              { name: { contains: search, mode: "insensitive" } },
+              { email: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {},
+      role ? { role: { equals: role } } : {},
     ],
   };
 
@@ -31,6 +38,7 @@ export const getUsers = catchAsync(async (req, res, next) => {
       id: true,
       name: true,
       email: true,
+      avatar: true,
       role: true,
       isActive: true,
       deletedAt: true,
@@ -92,4 +100,28 @@ export const hardDeleteUser = catchAsync(async (req, res) => {
     where: { id },
   });
   res.json({ success: true, message: "Người dùng đã bị xoá vĩnh viễn" });
+});
+
+export const restoreUser = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  const user = await prisma.user.findUnique({
+    where: { id },
+  });
+
+  if (!user) return next(new AppError("Không tìm thấy người dùng", 404));
+
+  const restoredUser = await prisma.user.update({
+    where: { id },
+    data: {
+      isActive: true,
+      deletedAt: null,
+    },
+  });
+
+  res.json({
+    success: true,
+    message: "Khôi phục người dùng thành công",
+    data: restoredUser,
+  });
 });
