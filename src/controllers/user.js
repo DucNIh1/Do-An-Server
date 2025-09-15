@@ -1,6 +1,7 @@
 import prisma from "../utils/prisma.js";
 import catchAsync from "../utils/CatchAsync.js";
 import AppError from "../utils/AppError.js";
+import { Role } from "../../generated/prisma/index.js";
 
 export const getUsers = catchAsync(async (req, res, next) => {
   let { page = 1, limit = 10, search, isActive, role } = req.query;
@@ -43,6 +44,13 @@ export const getUsers = catchAsync(async (req, res, next) => {
       isActive: true,
       deletedAt: true,
       createdAt: true,
+      major: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+      },
     },
   });
 
@@ -124,4 +132,29 @@ export const restoreUser = catchAsync(async (req, res, next) => {
     message: "Khôi phục người dùng thành công",
     data: restoredUser,
   });
+});
+
+export const updateUserRole = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { role, majorId } = req.body;
+
+  if (!Object.values(Role).includes(role)) {
+    return res.status(400).json({ message: "Invalid role" });
+  }
+
+  if (role === Role.ADVISOR && !majorId) {
+    return res
+      .status(400)
+      .json({ message: "Vui lòng chọn ngành mà tư vấn viên phụ trách" });
+  }
+
+  await prisma.user.update({
+    where: { id },
+    data: {
+      role,
+      majorId: role === Role.ADVISOR ? majorId : null,
+    },
+  });
+
+  res.json({ message: "Cập nhật người dùng thành công" });
 });

@@ -1,7 +1,5 @@
-import { PrismaClient } from "../generated/prisma/index.js";
 import bcrypt from "bcrypt";
-
-const prisma = new PrismaClient();
+import prisma from "../src/utils/prisma.js";
 
 const majors = [
   { code: "7210404", name: "Thiết kế thời trang" },
