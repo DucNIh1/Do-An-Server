@@ -376,12 +376,6 @@ export const createComment = catchAsync(async (req, res, next) => {
   const { text } = req.body;
   const currentUser = req.user;
 
-  if (text.length > 1000) {
-    return next(
-      new AppError("Nội dung comment không được quá 1000 ký tự", 400)
-    );
-  }
-
   const post = await prisma.post.findUnique({
     where: { id: postId },
     include: {
@@ -460,6 +454,7 @@ export const getPostComments = catchAsync(async (req, res, next) => {
             name: true,
             avatar: true,
             email: true,
+            role: true,
           },
         },
         Images: {
@@ -643,8 +638,24 @@ export const checkUserLiked = catchAsync(async (req, res, next) => {
 export const getTopPosts = catchAsync(async (req, res, next) => {
   const limit = Number(req.query.limit) || 5;
 
-  const topPosts = await prisma.post.findMany({
+  const topRatedPosts = await prisma.postRating.groupBy({
+    by: ["postId"],
+    _avg: {
+      score: true,
+    },
+    orderBy: {
+      _avg: {
+        score: "desc",
+      },
+    },
+    take: limit,
+  });
+
+  const postIds = topRatedPosts.map((p) => p.postId);
+
+  const posts = await prisma.post.findMany({
     where: {
+      id: { in: postIds },
       isDeleted: false,
       status: "verified",
     },
@@ -652,7 +663,6 @@ export const getTopPosts = catchAsync(async (req, res, next) => {
       id: true,
       title: true,
       teaser: true,
-
       createdAt: true,
       author: {
         select: { id: true, name: true, avatar: true },
@@ -664,17 +674,133 @@ export const getTopPosts = catchAsync(async (req, res, next) => {
           comments: true,
         },
       },
-    },
-    orderBy: {
-      likes: {
-        _count: "desc",
+      PostRating: {
+        select: { score: true },
       },
     },
-    take: limit,
+  });
+
+  const postsWithAvgScore = posts.map((post) => {
+    const ratingInfo = topRatedPosts.find((p) => p.postId === post.id);
+    return {
+      ...post,
+      avgScore: ratingInfo?._avg?.score ?? 0,
+    };
+  });
+
+  postsWithAvgScore.sort((a, b) => b.avgScore - a.avgScore);
+
+  res.status(200).json({
+    message: "Lấy danh sách bài viết có điểm đánh giá cao nhất thành công",
+    data: postsWithAvgScore,
+  });
+});
+
+export const ratePost = catchAsync(async function (req, res, next) {
+  const postId = req.params.id;
+  const { userId } = req.user;
+  const { score, comment } = req.body;
+
+  const existingRating = await prisma.postRating.findUnique({
+    where: {
+      postId_raterId: {
+        postId: postId,
+        raterId: userId,
+      },
+    },
+  });
+
+  if (existingRating) {
+    return next(new AppError("Bạn đã đánh giá bài viết này rồi!", 400));
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const post = await prisma.post.findUnique({ where: { id: postId } });
+
+  if (user.role !== Role.ADVISOR) {
+    throw new Error("Chỉ tư vấn viên mới được chấm điểm bài viết");
+  }
+  if (!user.majorId || user.majorId !== post.majorId) {
+    throw new Error("Không thể chấm điểm bài viết ngoài ngành");
+  }
+
+  const postRating = await prisma.postRating.create({
+    data: { raterId: userId, postId, score, comment },
+  });
+  res.status(200).json({
+    success: true,
+    data: postRating,
+  });
+});
+
+export const checkUserRatedPost = catchAsync(async function (req, res, next) {
+  const postId = req.params.id;
+  const { userId } = req.user;
+
+  if (!postId) {
+    return next(new AppError("Thiếu thông tin bài viết", 400));
+  }
+  if (!userId) {
+    return next(new AppError("Không xác định được người dùng", 401));
+  }
+
+  const existingRating = await prisma.postRating.findUnique({
+    where: {
+      postId_raterId: {
+        postId,
+        raterId: userId,
+      },
+    },
+    select: {
+      id: true,
+      score: true,
+      comment: true,
+      createdAt: true,
+    },
   });
 
   res.status(200).json({
-    message: "Lấy danh sách bài viết nhiều tương tác thành công",
-    data: topPosts,
+    success: true,
+    data: {
+      hasRated: !!existingRating,
+      rating: existingRating || null,
+    },
+  });
+});
+
+export const updatePostRating = catchAsync(async function (req, res, next) {
+  const postId = req.params.id;
+  const { userId } = req.user;
+  const { score, comment } = req.body;
+
+  const existingRating = await prisma.postRating.findUnique({
+    where: {
+      postId_raterId: {
+        postId,
+        raterId: userId,
+      },
+    },
+  });
+
+  if (!existingRating) {
+    return next(new AppError("Bạn chưa chấm điểm bài viết này", 404));
+  }
+
+  const updatedRating = await prisma.postRating.update({
+    where: {
+      postId_raterId: {
+        postId,
+        raterId: userId,
+      },
+    },
+    data: {
+      score,
+      comment,
+    },
+  });
+
+  res.status(200).json({
+    success: true,
+    data: updatedRating,
   });
 });

@@ -158,3 +158,179 @@ export const updateUserRole = catchAsync(async (req, res, next) => {
 
   res.json({ message: "Cập nhật người dùng thành công" });
 });
+
+export const rateAdvisorController = async (req, res, next) => {
+  try {
+    const { postId, score, comment } = req.body;
+    const teacherId = req.params.id;
+    const { userId: raterId } = req.user;
+
+    if (!postId || !score) {
+      return res.status(400).json({
+        status: "error",
+        message: "Thiếu postId hoặc score",
+      });
+    }
+
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      select: { authorId: true },
+    });
+
+    if (!post) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Bài viết không tồn tại" });
+    }
+
+    if (post.authorId !== raterId) {
+      return res.status(403).json({
+        status: "error",
+        message: "Bạn chỉ có thể chấm điểm tư vấn viên trong bài viết của bạn",
+      });
+    }
+
+    const teacherComment = await prisma.comment.findFirst({
+      where: {
+        postId,
+        authorId: teacherId,
+      },
+    });
+
+    if (!teacherComment) {
+      return res.status(400).json({
+        status: "error",
+        message:
+          "Bạn chỉ có thể chấm điểm tư vấn viên đã tư vấn trong bài viết của bạn",
+      });
+    }
+
+    const existingRating = await prisma.userRating.findFirst({
+      where: {
+        teacherId,
+        raterId,
+        postId,
+      },
+    });
+
+    if (existingRating) {
+      return res.status(400).json({
+        status: "error",
+        message: "Bạn đã chấm điểm tư vấn viên này trong bài viết này rồi",
+      });
+    }
+
+    const rating = await prisma.userRating.create({
+      data: {
+        teacherId,
+        raterId,
+        postId,
+        score,
+        comment,
+      },
+    });
+
+    return res.status(201).json({
+      status: "success",
+      message: "Đánh giá tư vấn viên thành công",
+      data: rating,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const checkRatedAdvisorController = async (req, res, next) => {
+  try {
+    const teacherId = req.params.id;
+    const { postId } = req.query;
+    const { userId: raterId } = req.user;
+
+    if (!postId) {
+      return res.status(400).json({
+        status: "error",
+        message: "Thiếu postId trong query",
+      });
+    }
+
+    const rating = await prisma.userRating.findFirst({
+      where: {
+        teacherId,
+        raterId,
+        postId,
+      },
+    });
+
+    return res.status(200).json({
+      hasRated: !!rating,
+      rating,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAllAdvisorsWithRatingsController = async (req, res, next) => {
+  try {
+    const advisors = await prisma.user.findMany({
+      where: {
+        role: "ADVISOR",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+        major: true,
+      },
+    });
+
+    const advisorsWithRatings = await Promise.all(
+      advisors.map(async (advisor) => {
+        const ratings = await prisma.userRating.findMany({
+          where: {
+            teacherId: advisor.id,
+          },
+          include: {
+            rater: {
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+              },
+            },
+            post: {
+              select: {
+                id: true,
+                title: true,
+              },
+            },
+          },
+        });
+
+        const totalScore = ratings.reduce(
+          (sum, rating) => sum + rating.score,
+          0
+        );
+        const averageScore =
+          ratings.length > 0
+            ? parseFloat((totalScore / ratings.length).toFixed(2))
+            : 0;
+
+        return {
+          ...advisor,
+          averageScore,
+          ratings,
+        };
+      })
+    );
+
+    return res.status(200).json({
+      status: "success",
+      message: "Lấy danh sách tư vấn viên thành công",
+      data: advisorsWithRatings,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

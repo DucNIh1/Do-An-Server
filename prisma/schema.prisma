@@ -31,6 +31,12 @@ model User {
 
   notificationsReceived Notification[]     @relation("NotificationsReceived") 
   notificationsCreated  Notification[]     @relation("NotificationsCreated")  
+
+  PostRating PostRating[]
+
+  TeacherRating UserRating[] @relation("TeacherRating")
+
+  UserRating UserRating[] @relation("UserRatingRater")
 }
 
 
@@ -71,6 +77,10 @@ model Post {
   images       Image[]
 
   Notification Notification[]
+
+  PostRating PostRating[]
+
+  UserRating UserRating[]
 }
 
 
@@ -189,6 +199,36 @@ model ConsultationRequest {
   birthDate  DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+}
+
+
+model PostRating {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @db.Uuid
+  raterId   String   @db.Uuid   // Ai chấm điểm (người giáo viên)
+  score     Int
+  
+  comment   String?             // optional review
+  createdAt DateTime @default(now())
+
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  rater  User   @relation(fields: [raterId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, raterId]) // mỗi người chỉ được chấm 1 lần
+}
+
+model UserRating {
+  id        String   @id @default(uuid()) @db.Uuid
+  teacherId String   @db.Uuid    // người được chấm điểm (giáo viên)
+  raterId   String   @db.Uuid    // ai chấm điểm (người tạo post)
+  postId    String   @db.Uuid 
+  score     Int
+  comment   String?              // đánh giá chi tiết
+  createdAt DateTime @default(now())
+  post    Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  teacher User @relation("TeacherRating", fields: [teacherId], references: [id], onDelete: Cascade)
+  rater   User @relation("UserRatingRater", fields: [raterId], references: [id], onDelete: Cascade)
+
 }
 
 enum RequestStatus {

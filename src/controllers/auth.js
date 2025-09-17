@@ -144,6 +144,7 @@ export const login = catchAsync(async (req, res, next) => {
       email: user.email,
       avatar: user.avatar,
       role: user.role,
+      majorId: user.majorId,
     },
   });
 });
@@ -187,6 +188,7 @@ export const loginWithGoogle = catchAsync(async (req, res, next) => {
       email: user.email,
       avatar: user.avatar,
       role: user.role,
+      majorId: user.majorId,
     },
   });
 });

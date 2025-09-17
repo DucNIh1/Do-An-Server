@@ -2,6 +2,7 @@ import express from "express";
 import {
   changePostStatus,
   checkUserLiked,
+  checkUserRatedPost,
   createComment,
   createPost,
   deleteComment,
@@ -14,10 +15,12 @@ import {
   getPosts,
   getReleatedPosts,
   getTopPosts,
+  ratePost,
   setFeaturedPost,
   toggleLike,
   updateComment,
   updatePost,
+  updatePostRating,
 } from "../controllers/post.js";
 import checkAuth from "../middlewares/checkAuth.js";
 import checkRole from "../middlewares/checkRole.js";
@@ -32,13 +35,15 @@ router.patch(
   checkRole("ADMIN"),
   setFeaturedPost
 );
+router.patch("/:id/rating", checkAuth, updatePostRating);
 
 router.get("/releated", getReleatedPosts);
 router.get("/my-posts", checkAuth, getMyPosts);
 
 router.get("/top", getTopPosts);
 router.route("/").get(getPosts).post(checkAuth, createPost);
-
+router.post("/:id/rate", checkAuth, ratePost);
+router.get("/:id/check-rating", checkAuth, checkUserRatedPost);
 router
   .route("/:id")
   .get(getPost)
