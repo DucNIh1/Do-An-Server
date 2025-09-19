@@ -8,3 +8,5 @@ export const notificationQueue = new Queue("notifications", {
 export const deleteImageQueue = new Queue("deleteImage", {
   connection: redisClient,
 });
+
+export const emailQueue = new Queue("email", { connection: redisClient });

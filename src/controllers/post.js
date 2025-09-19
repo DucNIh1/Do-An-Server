@@ -439,6 +439,11 @@ export const getPostComments = catchAsync(async (req, res, next) => {
   const { page = 1, limit = 10, sort = "desc" } = req.query;
   const skip = (+page - 1) * +limit;
 
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { majorId: true },
+  });
+
   const orderBy = { createdAt: sort === "asc" ? "asc" : "desc" };
 
   const [comments, totalComments] = await Promise.all([
@@ -455,6 +460,12 @@ export const getPostComments = catchAsync(async (req, res, next) => {
             avatar: true,
             email: true,
             role: true,
+            major: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
         Images: {
@@ -469,12 +480,30 @@ export const getPostComments = catchAsync(async (req, res, next) => {
     prisma.comment.count({ where: { postId } }),
   ]);
 
+  const sortedComments = comments.sort((a, b) => {
+    const isAConsultant = a.author.role === Role.ADVISOR;
+    const isBConsultant = b.author.role === Role.ADVISOR;
+
+    if (isAConsultant && !isBConsultant) return -1;
+    if (!isAConsultant && isBConsultant) return 1;
+
+    const aMatch = isAConsultant && a.author.major?.id === post.majorId;
+    const bMatch = isBConsultant && b.author.major?.id === post.majorId;
+
+    if (aMatch && !bMatch) return -1;
+    if (!aMatch && bMatch) return 1;
+
+    return sort === "asc"
+      ? new Date(a.createdAt) - new Date(b.createdAt)
+      : new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
   const totalPages = Math.ceil(totalComments / +limit);
 
   res.status(200).json({
     success: true,
     data: {
-      comments,
+      comments: sortedComments,
       totalComments,
       totalPages,
       currentPage: +page,
@@ -664,6 +693,8 @@ export const getTopPosts = catchAsync(async (req, res, next) => {
       title: true,
       teaser: true,
       createdAt: true,
+      content: true,
+      majorId: true,
       author: {
         select: { id: true, name: true, avatar: true },
       },

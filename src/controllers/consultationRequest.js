@@ -2,6 +2,7 @@ import prisma from "../utils/prisma.js";
 import { sendConsultationSuccessEmail } from "../nodemail/mail.js";
 import catchAsync from "../utils/CatchAsync.js";
 import { RequestStatus } from "../../generated/prisma/index.js";
+import { emailQueue } from "../queue.js";
 
 export const getConsultationRequests = catchAsync(async (req, res, next) => {
   const {
@@ -66,15 +67,38 @@ export const createConsultationRequest = catchAsync(async (req, res, next) => {
       address,
       birthDate: birthDate ? new Date(birthDate) : null,
     },
+    include: {
+      major: true,
+    },
   });
-  await sendConsultationSuccessEmail(
-    { email, fullName, phoneNumber },
-    sendConsultationSuccessEmail
-  );
 
-  res
-    .status(201)
-    .json({ message: "Tạo yêu cầu tư vấn thành công", request: newRequest });
+  const majorName = newRequest.major.name;
+
+  const advisors = await prisma.user.findMany({
+    where: {
+      majorId: majorId,
+    },
+    select: {
+      email: true,
+    },
+  });
+  console.log(advisors);
+  const advisorEmails = advisors.map((advisor) => advisor.email);
+
+  await emailQueue.add("sendConsultationEmails", {
+    student: {
+      fullName,
+      email,
+      phoneNumber,
+      majorName: majorName,
+    },
+    advisorEmails,
+  });
+
+  res.status(201).json({
+    message: "Tạo yêu cầu tư vấn thành công, chúng tôi sẽ sớm liên hệ với bạn.",
+    request: newRequest,
+  });
 });
 
 export const updateConsultationStatus = catchAsync(async (req, res, next) => {

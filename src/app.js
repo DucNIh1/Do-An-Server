@@ -13,6 +13,7 @@ import { initializeSocket, getUserSocketMap } from "./socket/socket.js";
 import { setIO } from "./socket/socketInstance.js";
 import "./workers/notificationWorker.js";
 import "./workers/deleteImageWorker.js";
+import "./workers/emailWorker.js";
 
 dotenv.config();
 const app = express();

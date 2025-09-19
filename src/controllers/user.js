@@ -64,10 +64,24 @@ export const getUsers = catchAsync(async (req, res, next) => {
 
 export const getUserById = catchAsync(async (req, res, next) => {
   const { id } = req.params;
+
   const user = await prisma.user.findUnique({
     where: { id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      major: true,
+      role: true,
+      avatar: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
-  if (!user) return next(new AppError("Không tìm thấy người dùng", 404));
+
+  if (!user) {
+    return next(new AppError("Không tìm thấy người dùng", 404));
+  }
 
   res.json({ success: true, data: user });
 });

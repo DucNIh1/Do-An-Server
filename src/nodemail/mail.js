@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import {
+  CONSULTATION_REQUEST_ADVISOR_TEMPLATE,
   CONSULTATION_REQUEST_SUCCESS_TEMPLATE,
   PASSWORD_RESET_REQUEST_TEMPLATE,
   PASSWORD_RESET_SUCCESS_TEMPLATE,
@@ -42,7 +43,40 @@ export const sendConsultationSuccessEmail = async ({
   }
 };
 
-// Hàm gửi email xác minh
+export const sendAdvisorNotificationEmail = async ({
+  advisorEmail,
+  studentInfo,
+}) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_AUTH,
+        pass: process.env.PASSWORD_AUTH,
+      },
+    });
+
+    const html = CONSULTATION_REQUEST_ADVISOR_TEMPLATE.replace(
+      "{fullName}",
+      studentInfo.fullName
+    )
+      .replace("{phoneNumber}", studentInfo.phoneNumber)
+      .replace("{email}", studentInfo.email)
+      .replace("{majorName}", studentInfo.majorName);
+
+    await transporter.sendMail({
+      from: `"Trung Tâm Tư Vấn Tuyển Sinh Trường Đại Học Công Nghiệp Hà Nội" <${process.env.EMAIL_AUTH}>`,
+      to: `${advisorEmail}`,
+      subject: "Bạn có 1 yêu cầu tư vấn mới",
+      html,
+    });
+  } catch (error) {
+    throw new Error(
+      `Error sending consultation success email: ${error.message}`
+    );
+  }
+};
+
 export const sendVerificationEmail = async (email, verificationToken) => {
   try {
     const transporter = nodemailer.createTransport({

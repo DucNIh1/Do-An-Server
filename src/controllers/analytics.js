@@ -34,7 +34,6 @@ export const getMonthlyRegistrations = async (req, res) => {
       count: row.count,
     }));
 
-    // Lấy tổng số người dùng trong năm đã chọn
     const totalUsersInYear = await prisma.user.count({
       where: {
         createdAt: {

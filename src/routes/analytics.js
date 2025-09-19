@@ -1,6 +1,5 @@
 import express from "express";
 
-// import checkAuth from "../middlewares/checkAuth.js";
 import {
   getGeneralStatistics,
   getMonthlyConsultations,

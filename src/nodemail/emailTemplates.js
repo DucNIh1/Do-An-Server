@@ -131,3 +131,41 @@ export const CONSULTATION_REQUEST_SUCCESS_TEMPLATE = `
 </body>
 </html>
 `;
+
+export const CONSULTATION_REQUEST_ADVISOR_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Có Yêu Cầu Tư Vấn Mới</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f4f4;">
+  <div style="background-color: #003366; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">Cổng thông tin Tuyển sinh HaUI</h1>
+  </div>
+  <div style="background-color: #ffffff; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <h2 style="color: #003366; text-align: center;">🔔 Thông Báo: Có Yêu Cầu Tư Vấn Mới!</h2>
+    <p>Chào bạn,</p>
+    <p>
+      Một sinh viên mới đã gửi yêu cầu tư vấn về chuyên ngành mà bạn đang phụ trách. Vui lòng xem thông tin chi tiết dưới đây để liên hệ và hỗ trợ sinh viên:
+    </p>
+    <ul style="list-style: none; padding: 0; margin: 20px 0;">
+      <li style="margin-bottom: 10px;"><strong>Họ và tên:</strong> {fullName}</li>
+      <li style="margin-bottom: 10px;"><strong>Email:</strong> {email}</li>
+      <li style="margin-bottom: 10px;"><strong>Số điện thoại:</strong> {phoneNumber}</li>
+      <li style="margin-bottom: 10px;"><strong>Chuyên ngành quan tâm:</strong> {majorName}</li>
+    </ul>
+    <p>
+      Hãy liên hệ với sinh viên sớm nhất để hỗ trợ kịp thời.
+    </p>
+    <p>
+      Trân trọng,<br>Đội ngũ Cổng thông tin Tuyển sinh HaUI
+    </p>
+  </div>
+  <div style="text-align: center; margin-top: 20px; color: #888; font-size: 12px;">
+    <p>Đây là email tự động, vui lòng không trả lời email này.</p>
+    <p>&copy; ${new Date().getFullYear()} Đại học Công nghiệp Hà Nội</p>
+  </div>
+</body>
+</html>
+`;
