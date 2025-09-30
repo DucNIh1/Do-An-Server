@@ -20,6 +20,7 @@ export const getMonthlyRegistrations = async (req, res) => {
         COUNT(*)::int as count
       FROM "User"
       WHERE EXTRACT(YEAR FROM "createdAt") = $1
+        AND "role" = 'STUDENT'
       GROUP BY month
       ORDER BY month ASC;
     `;
@@ -36,6 +37,7 @@ export const getMonthlyRegistrations = async (req, res) => {
 
     const totalUsersInYear = await prisma.user.count({
       where: {
+        role: "STUDENT",
         createdAt: {
           gte: new Date(`${targetYear}-01-01T00:00:00.000Z`),
           lt: new Date(`${targetYear + 1}-01-01T00:00:00.000Z`),
@@ -102,7 +104,7 @@ export const getMonthlyConsultations = async (req, res) => {
 export const getPostStatistics = async (req, res) => {
   try {
     const { year } = req.query;
-    const currentYear = year ? parseInt(year) : new Date().getFullYear();
+    const currentYear = year ? parseInt(year, 10) : new Date().getFullYear();
 
     const months = [
       "Jan",
@@ -118,6 +120,7 @@ export const getPostStatistics = async (req, res) => {
       "Nov",
       "Dec",
     ];
+
     const monthlyStats = [];
 
     for (let month = 0; month < 12; month++) {
@@ -128,27 +131,34 @@ export const getPostStatistics = async (req, res) => {
         where: {
           createdAt: { gte: startDate, lte: endDate },
           isDeleted: false,
-          //   status: "verified",
-          author: { role: "STUDENT" },
+          isFromSchool: false,
+          status: "verified",
         },
       });
 
       const interactions = await prisma.$queryRaw`
-        SELECT COUNT(DISTINCT (c."postId" || '_' || c."authorId")) AS count
-        FROM "Comment" c
-        INNER JOIN "Post" p ON c."postId" = p.id
-        INNER JOIN "User" u ON c."authorId" = u.id
-        WHERE c."createdAt" >= ${startDate}
-        AND c."createdAt" <= ${endDate}
-        AND p."isDeleted" = false
-        -- AND p."status" = 'verified'
-        AND u."role" = 'STUDENT'
+        SELECT SUM(sub.count)::int AS totalInteractions
+        FROM (
+          SELECT c."postId", COUNT(DISTINCT c."authorId") AS count
+          FROM "Comment" c
+          INNER JOIN "Post" p ON c."postId" = p.id
+          INNER JOIN "User" u ON c."authorId" = u.id
+          WHERE c."createdAt" >= ${startDate}
+            AND c."createdAt" <= ${endDate}
+            AND p."isDeleted" = false
+            AND p."status" = 'verified'
+          GROUP BY c."postId"
+        ) sub;
       `;
 
       monthlyStats.push({
         month: months[month],
         posts: postsCount,
-        interactions: Number(interactions[0]?.count || 0),
+        interactions: Number(interactions[0]?.totalinteractions || 0),
+        averageInteractions:
+          postsCount > 0
+            ? Number(interactions[0]?.totalinteractions || 0) / postsCount
+            : 0,
       });
     }
 
@@ -160,7 +170,7 @@ export const getPostStatistics = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching monthly statistics:", error);
+    console.error("Error in getPostStatistics:", error);
     res.status(500).json({
       success: false,
       message: "Không thể lấy thống kê",

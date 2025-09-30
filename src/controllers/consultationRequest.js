@@ -58,6 +58,25 @@ export const createConsultationRequest = catchAsync(async (req, res, next) => {
   const { fullName, phoneNumber, email, majorId, address, birthDate } =
     req.body;
 
+  const lastRequest = await prisma.consultationRequest.findFirst({
+    where: { email },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (lastRequest) {
+    const now = new Date();
+    const createdAt = new Date(lastRequest.createdAt);
+    const diffDays = Math.floor(
+      (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    if (lastRequest.status !== "DONE" && diffDays < 1) {
+      return res.status(400).json({
+        message: `Bạn đã gửi yêu cầu tư vấn trước đó và chưa được xử lý xong. Vui lòng chờ hoặc thử lại sau 1 ngày.`,
+      });
+    }
+  }
+
   const newRequest = await prisma.consultationRequest.create({
     data: {
       fullName,
@@ -72,17 +91,13 @@ export const createConsultationRequest = catchAsync(async (req, res, next) => {
     },
   });
 
-  const majorName = newRequest.major.name;
+  const majorName = newRequest.major?.name || "";
 
   const advisors = await prisma.user.findMany({
-    where: {
-      majorId: majorId,
-    },
-    select: {
-      email: true,
-    },
+    where: { majorId: majorId },
+    select: { email: true },
   });
-  console.log(advisors);
+
   const advisorEmails = advisors.map((advisor) => advisor.email);
 
   await emailQueue.add("sendConsultationEmails", {
@@ -90,7 +105,7 @@ export const createConsultationRequest = catchAsync(async (req, res, next) => {
       fullName,
       email,
       phoneNumber,
-      majorName: majorName,
+      majorName,
     },
     advisorEmails,
   });

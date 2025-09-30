@@ -94,7 +94,7 @@ export const getConversations = async (req, res, next) => {
     const whereClause = {
       members: {
         some: {
-          userId: userId,
+          userId,
         },
       },
     };
@@ -117,7 +117,7 @@ export const getConversations = async (req, res, next) => {
                 },
               },
               NOT: {
-                userId: userId,
+                userId,
               },
             },
           },
@@ -127,9 +127,6 @@ export const getConversations = async (req, res, next) => {
 
     const conversations = await prisma.conversation.findMany({
       where: whereClause,
-      orderBy: {
-        updatedAt: "desc",
-      },
       include: {
         members: {
           include: {
@@ -149,18 +146,23 @@ export const getConversations = async (req, res, next) => {
           },
           include: {
             sender: {
-              select: {
-                id: true,
-                name: true,
-              },
+              select: { id: true, name: true },
             },
-            images: { select: { url: true, id: true, publicId: true } },
+            images: {
+              select: { id: true, url: true, publicId: true },
+            },
           },
         },
       },
     });
 
-    res.status(200).json(conversations);
+    const sorted = conversations.sort((a, b) => {
+      const aTime = a.messages[0]?.createdAt ?? new Date(0);
+      const bTime = b.messages[0]?.createdAt ?? new Date(0);
+      return bTime - aTime;
+    });
+
+    res.status(200).json(sorted);
   } catch (err) {
     next(err);
   }

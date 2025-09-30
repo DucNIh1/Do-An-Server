@@ -285,10 +285,12 @@ export const checkRatedAdvisorController = async (req, res, next) => {
 };
 
 export const getAllAdvisorsWithRatingsController = async (req, res, next) => {
+  const { majorId } = req.query;
   try {
     const advisors = await prisma.user.findMany({
       where: {
         role: "ADVISOR",
+        ...(majorId ? { majorId } : {}),
       },
       select: {
         id: true,
