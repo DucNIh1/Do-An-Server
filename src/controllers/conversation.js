@@ -93,32 +93,22 @@ export const getConversations = async (req, res, next) => {
 
     const whereClause = {
       members: {
-        some: {
-          userId,
-        },
+        some: { userId },
       },
     };
 
     if (search) {
       whereClause.OR = [
         {
-          name: {
-            contains: search,
-            mode: "insensitive",
-          },
+          name: { contains: search, mode: "insensitive" },
         },
         {
           members: {
             some: {
               user: {
-                name: {
-                  contains: search,
-                  mode: "insensitive",
-                },
+                name: { contains: search, mode: "insensitive" },
               },
-              NOT: {
-                userId,
-              },
+              NOT: { userId }, // exclude chính user hiện tại
             },
           },
         },
@@ -130,33 +120,46 @@ export const getConversations = async (req, res, next) => {
       include: {
         members: {
           include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                avatar: true,
-              },
-            },
+            user: { select: { id: true, name: true, avatar: true } },
           },
         },
         messages: {
           take: 1,
-          orderBy: {
-            createdAt: "desc",
-          },
+          orderBy: { createdAt: "desc" },
           include: {
-            sender: {
-              select: { id: true, name: true },
-            },
-            images: {
-              select: { id: true, url: true, publicId: true },
-            },
+            sender: { select: { id: true, name: true } },
+            images: { select: { id: true, url: true, publicId: true } },
           },
         },
       },
     });
 
-    const sorted = conversations.sort((a, b) => {
+    const result = await Promise.all(
+      conversations.map(async (c) => {
+        const lastMessage = c.messages[0];
+        const currentMember = c.members.find((m) => m.userId === userId);
+
+        const unreadCount = await prisma.message.count({
+          where: {
+            conversationId: c.id,
+            createdAt: {
+              gt: currentMember?.lastReadAt ?? new Date(0),
+            },
+            senderId: { not: userId },
+          },
+        });
+
+        const hasUnread = unreadCount > 0;
+
+        return {
+          ...c,
+          hasUnread,
+          unreadCount,
+        };
+      })
+    );
+
+    const sorted = result.sort((a, b) => {
       const aTime = a.messages[0]?.createdAt ?? new Date(0);
       const bTime = b.messages[0]?.createdAt ?? new Date(0);
       return bTime - aTime;

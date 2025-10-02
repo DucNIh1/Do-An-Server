@@ -124,7 +124,7 @@ model ConversationMember {
   id             String        @id @default(uuid()) @db.Uuid
   userId         String        @db.Uuid
   conversationId String        @db.Uuid
-
+  lastReadAt     DateTime?    // thời điểm user đọc hội thoại lần cuối
   user           User          @relation(fields: [userId], references: [id])
   conversation   Conversation  @relation(fields: [conversationId], references: [id])
 

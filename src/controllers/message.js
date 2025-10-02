@@ -142,6 +142,7 @@ export const getMessages = async (req, res, next) => {
       after,
     } = req.query;
 
+    const { userId } = req.user;
     const messageLimit = Math.min(Math.max(parseInt(limit), 1), 50);
 
     let targetConversationId = conversationId;
@@ -158,9 +159,7 @@ export const getMessages = async (req, res, next) => {
         where: {
           isGroup: false,
           members: {
-            every: {
-              userId: { in: [senderId, receiverId] },
-            },
+            every: { userId: { in: [senderId, receiverId] } },
           },
           AND: [
             { members: { some: { userId: senderId } } },
@@ -200,6 +199,7 @@ export const getMessages = async (req, res, next) => {
       where: { id: targetConversationId },
       select: { id: true, name: true, isGroup: true },
     });
+
     if (!conversationExists) {
       return res.status(404).json({
         success: false,
@@ -207,9 +207,17 @@ export const getMessages = async (req, res, next) => {
       });
     }
 
-    let whereConditions = {
-      conversationId: targetConversationId,
-    };
+    await prisma.conversationMember.updateMany({
+      where: {
+        conversationId: targetConversationId,
+        userId,
+      },
+      data: {
+        lastReadAt: new Date(),
+      },
+    });
+
+    let whereConditions = { conversationId: targetConversationId };
 
     if (before) {
       whereConditions.createdAt = { lt: new Date(before) };
@@ -225,19 +233,10 @@ export const getMessages = async (req, res, next) => {
       take: messageLimit + 1,
       include: {
         sender: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-            role: true,
-          },
+          select: { id: true, name: true, avatar: true, role: true },
         },
         images: {
-          select: {
-            id: true,
-            url: true,
-            publicId: true,
-          },
+          select: { id: true, url: true, publicId: true },
           orderBy: { createdAt: "asc" },
         },
       },
@@ -253,7 +252,6 @@ export const getMessages = async (req, res, next) => {
       nextCursor = hasMore
         ? actualMessages[actualMessages.length - 1].createdAt.toISOString()
         : null;
-
       prevCursor = actualMessages[0].createdAt.toISOString();
     }
 
